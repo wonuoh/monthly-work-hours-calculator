@@ -594,6 +594,11 @@
         </div>
     </div>
 
+    <!-- 버전 정보 및 최종 수정일 표시 -->
+    <div style="margin-top: 30px; padding-bottom: 20px; font-size: 11px; color: #999; opacity: 0.7; text-align: left;">
+        v1.0.0 (최종 수정: <span id="lastModifiedDate"></span>)
+    </div>
+
     <script>
         const BASIC_WORK_MINUTES = 480;
         const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
@@ -1553,6 +1558,9 @@
         setupWorkDaysListener(); // workDays 이벤트 리스너 설정 추가
         autoCalculateRemainingDays(); // 페이지 로드 시 자동으로 남은 근무일수 계산
         updateRemainingDaysMax(); // 남은 근무일수 최대값 초기화
+        
+        // 최종 수정일 표시
+        document.getElementById('lastModifiedDate').textContent = new Date().toLocaleString('ko-KR');
     </script>
 </body>
 </html>
