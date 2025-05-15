@@ -596,7 +596,7 @@
 
     <!-- 버전 정보 및 최종 수정일 표시 -->
     <div style="margin-top: 30px; padding-bottom: 20px; font-size: 11px; color: #999; opacity: 0.7; text-align: left;">
-        v1.0.1 (최종 수정: 2025-05-16 06:50:00)
+        v1.0.2 (최종 수정: 2025-05-16 06:56:00)
     </div>
 
     <script>
@@ -1258,7 +1258,8 @@
             // 년도/월 변경 시 데이터 저장 후 로드
             document.getElementById('targetYear').addEventListener('change', () => {
                 saveData();
-                loadData();
+                updateTable(); // 테이블 먼저 새로 그림
+                loadData();    // 저장된 데이터 복원
                 // 데이터 로드 후에 월 근무일수, 목표시간을 다시 계산
                 calculateWorkDays();
                 calculateTargetHours();
@@ -1269,6 +1270,7 @@
             
             document.getElementById('targetMonth').addEventListener('change', () => {
                 saveData();
+                updateTable();
                 loadData();
                 // 데이터 로드 후에 월 근무일수, 목표시간을 다시 계산
                 calculateWorkDays();
