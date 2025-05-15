@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>월 근무시간 계산기</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+        }
+        .input-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: bold;
+            color: #34495e;
+            margin-bottom: 6px;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+        }
+        input, select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            border-color: black !important;
+            outline: none;
+        }
+        /* 체크박스 커스터마이징 */
+        input[type="checkbox"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ddd;
+            border-radius: 3px;
+            background-color: white;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+            margin-right: 5px;
+        }
+        
+        input[type="checkbox"]:checked {
+            background-color: #FF6A0D;
+            border-color: #FF6A0D;
+        }
+        
+        input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: -3px;
+            left: 1px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        input[type="checkbox"]:hover {
+            border-color: #FF6A0D;
+        }
+        
+        input[type="checkbox"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 106, 13, 0.3);
+        }
+        
+        /* 체크박스 그룹 스타일 개선 */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            flex-wrap: wrap;
+        }
+        
+        /* 자동계산 간격 일관성을 위한 스타일 */
+        .input-spacing {
+            margin-top: 8px;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 0;
+        }
+        .target-time-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .summary-section {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+        .summary-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            border-left: 4px solid black !important;
+        }
+        .summary-item h3 {
+            margin: 0 0 6px 0;
+            color: #2c3e50;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+        }
+        .summary-item .value {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            font-weight: bold;
+            color: black !important;
+        }
+        .summary-item .minutes-value {
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+            color: #666;
+            font-weight: normal;
+        }
+        .overtime-section {
+            background: #FF6A0D !important;
+            background: linear-gradient(135deg, #FF6A0D, #E55A0B) !important;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(255, 106, 13, 0.3);
+        }
+        .overtime-section h3 {
+            margin: 0 0 15px 0;
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            font-weight: 600;
+        }
+        .overtime-section .value {
+            font-size: clamp(1.8rem, 6vw, 2.2rem);
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .overtime-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .overtime-input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .overtime-controls label {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 0;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+        }
+        .overtime-controls input {
+            width: 80px;
+            text-align: center;
+            border: 2px solid white;
+            border-radius: 5px;
+            padding: 8px;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+        }
+        .average-display {
+            color: white;
+            font-size: clamp(1rem, 3vw, 1.1rem);
+            font-weight: bold;
+            margin-top: 10px;
+            text-align: center;
+            width: 100%;
+        }
+        .holiday-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 6px;
+            margin-top: 6px;
+            font-size: clamp(0.75rem, 2vw, 0.85rem);
+            color: #856404;
+            word-break: keep-all;
+        }
+        .button-group {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background-color: black !important;
+            color: white !important;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            margin: 5px;
+            white-space: nowrap;
+        }
+        .btn:hover {
+            background-color: #333 !important;
+        }
+        .btn-secondary {
+            background-color: #666 !important;
+        }
+        .btn-secondary:hover {
+            background-color: #555 !important;
+        }
+        
+        /* 테이블 반응형 */
+        .table-container {
+            overflow-x: auto;
+            margin: 0 -15px;
+            padding: 0 15px;
+        }
+        table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+        }
+        th {
+            background-color: black !important;
+            color: white !important;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+        .date-col { width: 70px; }
+        .day-col { width: 50px; }
+        .input-col { width: 110px; }
+        .result-col { width: 90px; }
+        
+        /* 테이블 입력 필드 */
+        .table-input {
+            width: 45px !important;
+            padding: 4px !important;
+            font-size: clamp(0.8rem, 2vw, 0.9rem) !important;
+            border: 1px solid #ddd !important;
+            border-radius: 3px !important;
+        }
+        
+        .positive { color: #27ae60; }
+        .negative { color: #e74c3c; }
+        .zero { color: #7f8c8d; }
+        .holiday { 
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .formula-display {
+            font-size: clamp(0.75rem, 2vw, 0.85rem);
+            color: #7f8c8d;
+            margin-top: 4px;
+            font-style: italic;
+            word-break: keep-all;
+        }
+        
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            .container {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            .input-section {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .target-time-section {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .summary-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 10px;
+            }
+            .overtime-section {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            .overtime-controls {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .overtime-controls input {
+                width: 100px;
+            }
+            .btn {
+                padding: 8px 12px;
+                margin: 3px;
+            }
+            
+            /* 작은 화면에서는 테이블을 카드 형태로 변환 */
+            .table-mobile {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                margin-bottom: 15px;
+            }
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            table {
+                min-width: 550px;
+            }
+            .table-input {
+                width: 35px !important;
+            }
+        }
+        
+        /* 반응형 레이아웃 조정을 위한 스타일 */
+        @media (min-width: 768px) {
+            .target-hours-container {
+                position: relative;
+            }
+            
+            .auto-calc-checkbox {
+                margin-top: 8px;
+            }
+        }
+        
+        /* 모바일 전용 표시 클래스 */
+        @media (max-width: 767px) {
+            .auto-calc-checkbox.pc-only {
+                display: none !important;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .auto-calc-checkbox.mobile-only {
+                display: none !important;
+            }
+        }
+        .average-minutes {
+            font-weight: 700;
+            color: white;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>📅 월 근무시간 계산기</h1>
+
+    <div class="container">
+        <!-- 기본 설정 섹션 -->
+        <div class="input-section">
+            <!-- 연도와 월 선택 (첫 번째 줄) -->
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="targetYear">연도</label>
+                    <select id="targetYear"></select>
+                </div>
+                <div class="input-group">
+                    <label for="targetMonth">월</label>
+                    <select id="targetMonth">
+                        <option value="1">1월</option>
+                        <option value="2">2월</option>
+                        <option value="3">3월</option>
+                        <option value="4">4월</option>
+                        <option value="5">5월</option>
+                        <option value="6">6월</option>
+                        <option value="7">7월</option>
+                        <option value="8">8월</option>
+                        <option value="9">9월</option>
+                        <option value="10">10월</option>
+                        <option value="11">11월</option>
+                        <option value="12">12월</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 월 근무일수 (두 번째 줄) -->
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="workDays">월 근무일수</label>
+                    <input type="number" id="workDays" value="19" min="1" step="1" readonly>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoCalculate" checked>
+                            자동 계산
+                        </label>
+                    </div>
+                    <div class="holiday-info" id="holidayInfo"></div>
+                </div>
+            </div>
+            
+            <!-- 월 필수 근무시간 (세 번째 줄) -->
+            <div class="input-row">
+                <div class="input-group target-hours-container">
+                    <label for="targetHours">월 필수 근무시간 (시간)</label>
+                    <input type="number" id="targetHours" value="153" min="0" step="1" readonly>
+                    
+                    <!-- PC/태블릿에서만 표시 -->
+                    <div class="checkbox-group auto-calc-checkbox pc-only">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoCalculateTarget" checked>
+                            자동 계산
+                        </label>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="targetMinutes">월 필수 근무시간 (분)</label>
+                    <input type="number" id="targetMinutes" value="6" min="0" max="59" step="1" readonly>
+                    
+                    <!-- 모바일에서만 표시 -->
+                    <div class="checkbox-group auto-calc-checkbox mobile-only">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="autoCalculateTarget" checked>
+                            자동 계산
+                        </label>
+                    </div>
+                    
+                    <div class="formula-display" id="targetFormula">
+                        40시간 × (31일/7일) - (3일×8시간) = 153시간 6분
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 요약 정보 섹션 -->
+        <div class="summary-section">
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <h3>월 필수 근무시간</h3>
+                    <div class="value" id="totalTarget">153시간 6분</div>
+                    <div class="minutes-value" id="totalMinutesDisplay">(9,186분)</div>
+                </div>
+                <div class="summary-item">
+                    <h3>일 평균 필요 근무시간</h3>
+                    <div class="value" id="dailyAverage">8시간 4분</div>
+                    <div class="minutes-value" id="dailyAverageMinutes">(484분)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 버튼 섹션을 주황색 박스와 테이블 사이로 이동 -->
+        <div class="overtime-section" id="overtimeSection">
+            <h3>⏳ 이번 달 남은 초과근무시간</h3>
+            <div class="value" id="monthlyOvertime">66분</div>
+            
+            <div class="overtime-controls">
+                <div class="overtime-input-row">
+                    <label for="remainingDays">남은 근무일수:</label>
+                    <input type="number" id="remainingDays" value="0" min="0" max="31" onchange="validateRemainingDays()" onkeyup="validateRemainingDays()">
+                    <button class="btn" onclick="calculateRemainingWorkdays()" style="padding: 5px 8px;">오늘 포함 자동 계산</button>
+                </div>
+                <div class="average-display" id="averageOvertime">⏱️ 남은 근무일 동안 하루 평균 0분 초과근무가 필요합니다.</div>
+            </div>
+        </div>
+
+        <!-- 버튼 그룹 이동 및 텍스트 변경 -->
+        <div style="text-align: center; margin-bottom: 20px;" class="button-group">
+            <button class="btn" onclick="resetAll()">실제 근무시간 초기화</button>
+            <button class="btn btn-secondary" onclick="clearAllData()">저장된 실제 근무시간 삭제</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="date-col">날짜</th>
+                        <th class="day-col">요일</th>
+                        <th class="input-col">실제 근무시간<br>(시간:분)</th>
+                        <th class="result-col">초과/미달<br>(분)</th>
+                        <th class="result-col">남은 초과근무<br>(분)</th>
+                    </tr>
+                </thead>
+                <tbody id="workTable">
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f8f9fa; font-weight: bold;">
+                        <td colspan="2">합계</td>
+                        <td id="totalActual">0시간 0분</td>
+                        <td id="totalDiff" class="zero">0분</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const BASIC_WORK_MINUTES = 480;
+        const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+
+        const KOREAN_HOLIDAYS = {
+            fixed: [
+                { month: 1, day: 1, name: '신정' },
+                { month: 3, day: 1, name: '삼일절' },
+                { month: 5, day: 1, name: '근로자의 날' },
+                { month: 5, day: 5, name: '어린이날' },
+                { month: 6, day: 6, name: '현충일' },
+                { month: 8, day: 15, name: '광복절' },
+                { month: 10, day: 3, name: '개천절' },
+                { month: 10, day: 9, name: '한글날' },
+                { month: 12, day: 25, name: '성탄절' }
+            ],
+            yearly: {
+                2025: [
+                    { month: 1, day: 27, name: '임시공휴일' },
+                    { month: 1, day: 28, name: '설날 연휴' },
+                    { month: 1, day: 29, name: '설날' },
+                    { month: 1, day: 30, name: '설날 연휴' },
+                    { month: 3, day: 3, name: '대체휴일' },
+                    { month: 5, day: 6, name: '대체휴일' },
+                    { month: 6, day: 3, name: '대통령선거' },
+                    { month: 10, day: 6, name: '추석' },
+                    { month: 10, day: 7, name: '추석 연휴' },
+                    { month: 10, day: 8, name: '대체휴일' }
+                ]
+            }
+        };
+
+        let currentMonthlyOvertimeMinutes = 0;
+
+        // 데이터 저장 및 로드 함수들
+        function saveData() {
+            const year = document.getElementById('targetYear').value;
+            const month = document.getElementById('targetMonth').value;
+            const key = `workingTime_${year}_${month}`;
+            
+            const data = {
+                targetHours: document.getElementById('targetHours').value,
+                targetMinutes: document.getElementById('targetMinutes').value,
+                workDays: document.getElementById('workDays').value,
+                autoCalculateTarget: document.getElementById('autoCalculateTarget').checked,
+                autoCalculate: document.getElementById('autoCalculate').checked,
+                remainingDays: document.getElementById('remainingDays').value,
+                workTimeData: getWorkTimeData()
+            };
+            
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        function loadData() {
+            const year = document.getElementById('targetYear').value;
+            const month = document.getElementById('targetMonth').value;
+            const key = `workingTime_${year}_${month}`;
+            
+            const savedData = localStorage.getItem(key);
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    
+                    // 기본 설정 복원
+                    document.getElementById('targetHours').value = data.targetHours || 153;
+                    document.getElementById('targetMinutes').value = data.targetMinutes || 6;
+                    document.getElementById('workDays').value = data.workDays || 19;
+                    document.getElementById('autoCalculateTarget').checked = data.autoCalculateTarget !== false;
+                    document.getElementById('autoCalculate').checked = data.autoCalculate !== false;
+                    document.getElementById('remainingDays').value = data.remainingDays || 0;
+                    
+                    // 근무시간 데이터 복원
+                    if (data.workTimeData) {
+                        setWorkTimeData(data.workTimeData);
+                    }
+                    
+                    return true;
+                } catch (e) {
+                    console.error('데이터 로드 실패:', e);
+                }
+            }
+            return false;
+        }
+
+        function getWorkTimeData() {
+            const data = {};
+            const rows = document.getElementById('workTable').rows;
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const timeCell = row.cells[2];
+                const inputs = timeCell.getElementsByTagName('input');
+                
+                if (inputs.length >= 2) {
+                    const day = i + 1;
+                    const hours = inputs[0].value;
+                    const minutes = inputs[1].value;
+                    
+                    // 기본값(8:00)이 아닌 경우만 저장
+                    if (hours !== '8' || minutes !== '00') {
+                        data[day] = { hours, minutes };
+                    }
+                }
+            }
+            
+            return data;
+        }
+
+        function setWorkTimeData(data) {
+            const rows = document.getElementById('workTable').rows;
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const timeCell = row.cells[2];
+                const inputs = timeCell.getElementsByTagName('input');
+                
+                if (inputs.length >= 2) {
+                    const day = i + 1;
+                    
+                    if (data[day]) {
+                        inputs[0].value = data[day].hours;
+                        inputs[1].value = data[day].minutes;
+                    }
+                }
+            }
+        }
+
+        function isHoliday(year, month, day) {
+            for (const holiday of KOREAN_HOLIDAYS.fixed) {
+                if (holiday.month === month && holiday.day === day) {
+                    return holiday.name;
+                }
+            }
+            if (KOREAN_HOLIDAYS.yearly[year]) {
+                for (const holiday of KOREAN_HOLIDAYS.yearly[year]) {
+                    if (holiday.month === month && holiday.day === day) {
+                        return holiday.name;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function calculateTargetHours() {
+            const year = parseInt(document.getElementById('targetYear').value);
+            const month = parseInt(document.getElementById('targetMonth').value);
+            const autoCalculateTarget = document.getElementById('autoCalculateTarget').checked;
+            
+            if (!autoCalculateTarget) return;
+
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const holidayDates = new Set();
+            let holidayList = [];
+            
+            for (const holiday of KOREAN_HOLIDAYS.fixed) {
+                if (holiday.month === month) {
+                    const date = new Date(year, month - 1, holiday.day);
+                    const dayOfWeek = date.getDay();
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                        holidayDates.add(holiday.day);
+                        holidayList.push(holiday.name);
+                    }
+                }
+            }
+            
+            if (KOREAN_HOLIDAYS.yearly[year]) {
+                for (const holiday of KOREAN_HOLIDAYS.yearly[year]) {
+                    if (holiday.month === month) {
+                        const date = new Date(year, month - 1, holiday.day);
+                        const dayOfWeek = date.getDay();
+                        if (dayOfWeek !== 0 && dayOfWeek !== 6 && !holidayDates.has(holiday.day)) {
+                            holidayDates.add(holiday.day);
+                            holidayList.push(holiday.name);
+                        }
+                    }
+                }
+            }
+            
+            const holidayDays = holidayDates.size;
+            const totalWorkMinutes = Math.floor((40 * daysInMonth / 7) * 60);
+            const holidayMinutes = holidayDays * 8 * 60;
+            const finalMinutes = totalWorkMinutes - holidayMinutes;
+            const roundedMinutes = Math.round(finalMinutes / 6) * 6;
+            
+            const hours = Math.floor(roundedMinutes / 60);
+            const minutes = roundedMinutes % 60;
+            
+            document.getElementById('targetHours').value = hours;
+            document.getElementById('targetMinutes').value = minutes;
+            
+            const formula = `40시간 × (${daysInMonth}일/7일) - (${holidayDays}일×8시간) = ${hours}시간 ${minutes}분`;
+            document.getElementById('targetFormula').textContent = formula;
+            
+            updateCalculations();
+        }
+
+        function calculateWorkDays() {
+            const year = parseInt(document.getElementById('targetYear').value);
+            const month = parseInt(document.getElementById('targetMonth').value);
+            const autoCalculate = document.getElementById('autoCalculate').checked;
+            
+            if (!autoCalculate) {
+                // 자동 계산이 꺼져 있으면 workDays 입력 필드를 편집 가능하게 설정
+                document.getElementById('workDays').readOnly = false;
+                return;
+            }
+
+            const daysInMonth = new Date(year, month, 0).getDate();
+            let workDays = 0;
+            let holidays = [];
+            let weekends = 0;
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month - 1, day);
+                const dayOfWeek = date.getDay();
+                
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    weekends++;
+                    continue;
+                }
+                
+                const holiday = isHoliday(year, month, day);
+                if (holiday) {
+                    holidays.push(`${day}일(${holiday})`);
+                    continue;
+                }
+                
+                workDays++;
+            }
+
+            document.getElementById('workDays').value = workDays;
+            document.getElementById('workDays').readOnly = true;
+
+            let holidayInfo = `주말: ${weekends}일`;
+            if (holidays.length > 0) {
+                holidayInfo += `, 공휴일: ${holidays.join(', ')}`;
+            }
+            document.getElementById('holidayInfo').textContent = holidayInfo;
+
+            updateCalculations();
+        }
+
+        function updateTable() {
+            const year = parseInt(document.getElementById('targetYear').value);
+            const month = parseInt(document.getElementById('targetMonth').value);
+            const table = document.getElementById('workTable');
+            
+            table.innerHTML = '';
+            
+            const daysInMonth = new Date(year, month, 0).getDate();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month - 1, day);
+                const dayOfWeek = date.getDay();
+                const dayName = DAY_NAMES[dayOfWeek];
+                
+                const holiday = isHoliday(year, month, day);
+                const isWeekendOrHoliday = (dayOfWeek === 0 || dayOfWeek === 6 || holiday);
+                
+                const row = table.insertRow();
+                
+                const dateCell = row.insertCell();
+                dateCell.textContent = `${month}/${day}`;
+                if (isWeekendOrHoliday) dateCell.className = 'holiday';
+                
+                const dayCell = row.insertCell();
+                dayCell.textContent = dayName;
+                if (isWeekendOrHoliday) dayCell.className = 'holiday';
+                
+                const timeCell = row.insertCell();
+                if (isWeekendOrHoliday) {
+                    timeCell.textContent = holiday || '휴일';
+                    timeCell.className = 'holiday';
+                } else {
+                    timeCell.innerHTML = `
+                        <input type="number" min="0" max="24" step="1" value="8" class="table-input hours-input" onchange="validateTimeInput(this, true)" oninput="validateTimeInput(this, true)">:
+                        <input type="number" min="0" max="59" step="1" value="00" class="table-input minutes-input" onchange="validateTimeInput(this, false)" oninput="validateTimeInput(this, false)">
+                    `;
+                }
+                
+                const diffCell = row.insertCell();
+                diffCell.className = 'zero';
+                diffCell.textContent = isWeekendOrHoliday ? '-' : '0분';
+                
+                const remainingCell = row.insertCell();
+                remainingCell.className = 'zero';
+                remainingCell.textContent = '0분';
+            }
+            
+            // 입력 필드에 유효성 검사 적용
+            applyTimeValidation();
+            calculateTotals();
+        }
+
+        function calculateRemainingAverage() {
+            const remainingOvertimeMinutes = parseInt(document.getElementById('monthlyOvertime').textContent) || 0;
+            const remainingDays = parseInt(document.getElementById('remainingDays').value) || 0;
+            
+            if (remainingDays > 0 && remainingOvertimeMinutes > 0) {
+                const averageMinutes = Math.round(remainingOvertimeMinutes / remainingDays);
+                document.getElementById('averageOvertime').innerHTML = `⏱️ 남은 근무일 동안 하루 평균 <span class="average-minutes">${averageMinutes}분</span> 초과근무가 필요합니다.`;
+            } else {
+                document.getElementById('averageOvertime').innerHTML = `⏱️ 남은 근무일 동안 하루 평균 <span class="average-minutes">0분</span> 초과근무가 필요합니다.`;
+            }
+            saveData(); // 남은 근무일수 변경 시 저장
+        }
+
+        function calculateAll() {
+            // 근무시간 데이터 먼저 저장
+            const workTimeData = getWorkTimeData();
+            
+            // 필요한 계산 수행
+            calculateWorkDays();
+            calculateTargetHours();
+            updateCalculations();
+            
+            // 근무시간 데이터 복원
+            setWorkTimeData(workTimeData);
+            
+            // 테이블 재계산
+            calculateTotals();
+            
+            // 변경사항 저장
+            saveData();
+        }
+
+        function updateCalculations() {
+            const targetHours = parseInt(document.getElementById('targetHours').value) || 0;
+            const targetMinutes = parseInt(document.getElementById('targetMinutes').value) || 0;
+            const workDays = parseInt(document.getElementById('workDays').value) || 1;
+
+            const totalTargetMinutes = targetHours * 60 + targetMinutes;
+            const dailyAverageMinutes = Math.round(totalTargetMinutes / workDays);
+            const dailyAverageHours = Math.floor(dailyAverageMinutes / 60);
+            const dailyAverageRemainingMinutes = dailyAverageMinutes % 60;
+            
+            const totalBasicMinutes = workDays * BASIC_WORK_MINUTES;
+            currentMonthlyOvertimeMinutes = totalTargetMinutes - totalBasicMinutes;
+
+            document.getElementById('totalTarget').textContent = `${targetHours}시간 ${targetMinutes}분`;
+            document.getElementById('totalMinutesDisplay').textContent = `(${totalTargetMinutes.toLocaleString()}분)`;
+            document.getElementById('dailyAverage').textContent = `${dailyAverageHours}시간 ${dailyAverageRemainingMinutes}분`;
+            document.getElementById('dailyAverageMinutes').textContent = `(${dailyAverageMinutes}분)`;
+            document.getElementById('monthlyOvertime').textContent = `${currentMonthlyOvertimeMinutes}분`;
+            
+            // 남은 근무일수 입력 필드의 최대값을 해당 월의 일수로 제한
+            const year = parseInt(document.getElementById('targetYear').value);
+            const month = parseInt(document.getElementById('targetMonth').value);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            document.getElementById('remainingDays').max = daysInMonth;
+            
+            // 만약 현재 설정된 값이 해당 월의 일수보다 크면 조정
+            const remainingDays = parseInt(document.getElementById('remainingDays').value) || 0;
+            if (remainingDays > daysInMonth) {
+                document.getElementById('remainingDays').value = daysInMonth;
+                calculateRemainingAverage();
+            }
+
+            updateTable();
+        }
+
+        function calculateTotals() {
+            const workDays = parseInt(document.getElementById('workDays').value) || 1;
+            const targetHours = parseInt(document.getElementById('targetHours').value) || 0;
+            const targetMinutes = parseInt(document.getElementById('targetMinutes').value) || 0;
+            const totalTargetMinutes = targetHours * 60 + targetMinutes;
+
+            let remainingOvertimeMinutes = currentMonthlyOvertimeMinutes;
+            let totalActualMinutes = 0;
+            
+            const rows = document.getElementById('workTable').rows;
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const timeCell = row.cells[2];
+                const inputs = timeCell.getElementsByTagName('input');
+                
+                if (inputs.length >= 2) {
+                    const hourInput = inputs[0];
+                    const minuteInput = inputs[1];
+                    
+                    // 입력값 유효성 검사 및 제한
+                    let hours = parseInt(hourInput.value) || 0;
+                    let minutes = parseInt(minuteInput.value) || 0;
+                    
+                    // 24시간인 경우 분은 무조건 0
+                    if (hours === 24) {
+                        minutes = 0;
+                        minuteInput.value = "00";
+                        minuteInput.disabled = true;
+                    }
+                    
+                    const actualMinutes = hours * 60 + minutes;
+                    
+                    totalActualMinutes += actualMinutes;
+                    
+                    const dailyOvertimeDiff = actualMinutes - BASIC_WORK_MINUTES;
+                    remainingOvertimeMinutes -= dailyOvertimeDiff;
+                    
+                    const diffCell = row.cells[3];
+                    if (dailyOvertimeDiff > 0) {
+                        diffCell.textContent = `+${dailyOvertimeDiff}분`;
+                        diffCell.className = 'positive';
+                    } else if (dailyOvertimeDiff < 0) {
+                        diffCell.textContent = `${dailyOvertimeDiff}분`;
+                        diffCell.className = 'negative';
+                    } else {
+                        diffCell.textContent = '0분';
+                        diffCell.className = 'zero';
+                    }
+                    
+                    const remainingCell = row.cells[4];
+                    if (remainingOvertimeMinutes > 0) {
+                        remainingCell.textContent = `${Math.round(remainingOvertimeMinutes)}분`;
+                        remainingCell.className = 'negative';
+                    } else if (remainingOvertimeMinutes < 0) {
+                        remainingCell.textContent = `${Math.abs(Math.round(remainingOvertimeMinutes))}분`;
+                        remainingCell.className = 'positive';
+                    } else {
+                        remainingCell.textContent = '0분';
+                        remainingCell.className = 'zero';
+                    }
+                }
+            }
+            
+            document.getElementById('monthlyOvertime').textContent = Math.max(0, remainingOvertimeMinutes) + '분';
+            calculateRemainingAverage();
+            
+            const totalHours = Math.floor(totalActualMinutes / 60);
+            const totalMin = totalActualMinutes % 60;
+            document.getElementById('totalActual').textContent = `${totalHours}시간 ${totalMin}분`;
+            
+            const totalDiffElement = document.getElementById('totalDiff');
+            const finalDiff = totalActualMinutes - totalTargetMinutes;
+            
+            if (finalDiff > 0) {
+                totalDiffElement.textContent = `+${finalDiff}분`;
+                totalDiffElement.className = 'positive';
+            } else if (finalDiff < 0) {
+                totalDiffElement.textContent = `${finalDiff}분`;
+                totalDiffElement.className = 'negative';
+            } else {
+                totalDiffElement.textContent = '0분';
+                totalDiffElement.className = 'zero';
+            }
+            
+            saveData(); // 계산 완료 후 저장
+        }
+
+        function resetAll() {
+            if (confirm('모든 데이터를 초기화하시겠습니까?')) {
+                initMonthSelect();
+                document.getElementById('autoCalculateTarget').checked = true;
+                document.getElementById('autoCalculate').checked = true;
+                document.getElementById('remainingDays').value = 0;
+                calculateAll();
+                
+                const inputs = document.querySelectorAll('#workTable input');
+                inputs.forEach((input, index) => {
+                    if (index % 2 === 0) input.value = 8;
+                    else input.value = 0;
+                });
+                calculateTotals();
+            }
+        }
+
+        // 모든 저장된 데이터 삭제
+        function clearAllData() {
+            if (confirm('모든 월의 저장된 데이터를 삭제하시겠습니까?')) {
+                // 로컬 스토리지에서 workingTime_ 으로 시작하는 모든 키 삭제
+                const keysToDelete = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('workingTime_')) {
+                        keysToDelete.push(key);
+                    }
+                }
+                
+                keysToDelete.forEach(key => localStorage.removeItem(key));
+                
+                alert('모든 데이터가 삭제되었습니다.');
+                location.reload(); // 페이지 새로고침
+            }
+        }
+
+        // 자동 저장 리스너 추가 및 초기화
+        function addAutoSaveListeners() {
+            // 년도/월 변경 시 데이터 저장 후 로드
+            document.getElementById('targetYear').addEventListener('change', () => {
+                saveData();
+                loadData();
+                // 데이터 로드 후에 월 근무일수, 목표시간을 다시 계산
+                calculateWorkDays();
+                calculateTargetHours();
+                updateCalculations();
+                updateRemainingDaysMax(); // 남은 근무일수 최대값 업데이트
+            });
+            
+            document.getElementById('targetMonth').addEventListener('change', () => {
+                saveData();
+                loadData();
+                // 데이터 로드 후에 월 근무일수, 목표시간을 다시 계산
+                calculateWorkDays();
+                calculateTargetHours();
+                updateCalculations();
+                updateRemainingDaysMax(); // 남은 근무일수 최대값 업데이트
+            });
+            
+            // 기본 설정 변경 시 자동 저장
+            document.getElementById('targetHours').addEventListener('input', () => {
+                updateCalculations();
+            });
+            document.getElementById('targetMinutes').addEventListener('input', () => {
+                updateCalculations();
+            });
+            document.getElementById('workDays').addEventListener('input', () => {
+                updateCalculations();
+            });
+            document.getElementById('autoCalculateTarget').addEventListener('change', () => {
+                const autoCalculateTarget = document.getElementById('autoCalculateTarget').checked;
+                const targetHoursInput = document.getElementById('targetHours');
+                const targetMinutesInput = document.getElementById('targetMinutes');
+                
+                targetHoursInput.readOnly = autoCalculateTarget;
+                targetMinutesInput.readOnly = autoCalculateTarget;
+                
+                if (autoCalculateTarget) {
+                    calculateTargetHours();
+                } else {
+                    document.getElementById('targetFormula').textContent = '수동 입력 모드';
+                }
+                saveData();
+            });
+            document.getElementById('autoCalculate').addEventListener('change', () => {
+                const autoCalculate = document.getElementById('autoCalculate').checked;
+                const workDaysInput = document.getElementById('workDays');
+                
+                if (autoCalculate) {
+                    // 자동 계산이 켜지면 월 근무일수 다시 계산
+                    calculateWorkDays();
+                } else {
+                    // 자동 계산이 꺼지면 월 근무일수 편집 가능하게 설정
+                    workDaysInput.readOnly = false;
+                }
+                saveData();
+            });
+            document.getElementById('remainingDays').addEventListener('change', validateRemainingDays);
+            document.getElementById('remainingDays').addEventListener('input', validateRemainingDays);
+        }
+
+        function initYearSelect() {
+            const yearSelect = document.getElementById('targetYear');
+            const currentYear = new Date().getFullYear();
+            yearSelect.innerHTML = '';
+            
+            // 2025년부터 2027년까지만 표시
+            for (let year = 2025; year <= 2027; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year + '년';
+                if (year === currentYear) option.selected = true;
+                else if (year === 2025 && currentYear < 2025) option.selected = true; // 현재가 2025년 이전이면 2025년 선택
+                yearSelect.appendChild(option);
+            }
+        }
+
+        function initMonthSelect() {
+            const monthSelect = document.getElementById('targetMonth');
+            const currentMonth = new Date().getMonth() + 1;
+            monthSelect.value = currentMonth;
+        }
+
+        // 현재 날짜 기준으로 남은 근무일수 계산 함수
+        function calculateRemainingWorkdays() {
+            const year = parseInt(document.getElementById('targetYear').value);
+            const month = parseInt(document.getElementById('targetMonth').value);
+            
+            // 현재 날짜 가져오기
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth() + 1;
+            const currentDay = today.getDate();
+            
+            // 선택된 연도와 월이 현재 날짜와 다르면 계산하지 않음
+            if (year !== currentYear || month !== currentMonth) {
+                alert('현재 월에 대해서만 자동 계산이 가능합니다.');
+                return;
+            }
+            
+            const daysInMonth = new Date(year, month, 0).getDate();
+            let remainingDays = 0;
+            
+            // 오늘부터 월말까지 근무일수 계산
+            for (let day = currentDay; day <= daysInMonth; day++) {
+                const date = new Date(year, month - 1, day);
+                const dayOfWeek = date.getDay();
+                
+                // 주말이 아니고 공휴일도 아니면 근무일로 카운트
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday(year, month, day)) {
+                    remainingDays++;
+                }
+            }
+            
+            document.getElementById('remainingDays').value = remainingDays;
+            calculateRemainingAverage();
+        }
+        
+        // 페이지 로드 시 자동으로 남은 근무일수 계산
+        function autoCalculateRemainingDays() {
+            const today = new Date();
+            const selectedYear = parseInt(document.getElementById('targetYear').value);
+            const selectedMonth = parseInt(document.getElementById('targetMonth').value);
+            
+            // 현재 연도와 월이 선택되어 있다면 자동 계산
+            if (selectedYear === today.getFullYear() && selectedMonth === today.getMonth() + 1) {
+                calculateRemainingWorkdays();
+            }
+        }
+
+        // 남은 근무일수 유효성 검사 함수
+        function validateRemainingDays() {
+            const year = parseInt(document.getElementById('targetYear').value);
+            const month = parseInt(document.getElementById('targetMonth').value);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            
+            const remainingDaysInput = document.getElementById('remainingDays');
+            const currentValue = parseInt(remainingDaysInput.value) || 0;
+            
+            // HTML 속성 업데이트
+            remainingDaysInput.max = daysInMonth;
+            
+            // 값이 월의 일수를 초과하면 최대값으로 조정
+            if (currentValue > daysInMonth) {
+                remainingDaysInput.value = daysInMonth;
+            }
+            
+            // 값이 음수면 0으로 조정
+            if (currentValue < 0) {
+                remainingDaysInput.value = 0;
+            }
+            
+            calculateRemainingAverage();
+        }
+
+        // 페이지 로드 및 월 변경 시 남은 근무일수 최대값 설정
+        function updateRemainingDaysMax() {
+            const year = parseInt(document.getElementById('targetYear').value);
+            const month = parseInt(document.getElementById('targetMonth').value);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            
+            const remainingDaysInput = document.getElementById('remainingDays');
+            remainingDaysInput.max = daysInMonth;
+            
+            // 현재 값이 새 최대값을 초과하면 조정
+            if (parseInt(remainingDaysInput.value) > daysInMonth) {
+                remainingDaysInput.value = daysInMonth;
+                calculateRemainingAverage();
+            }
+        }
+
+        // 시간 입력 유효성 검사 함수
+        function validateTimeInput(inputElement, isHours) {
+            let value = parseInt(inputElement.value) || 0;
+            
+            if (isHours) {
+                // 시간은 0~24 범위로 제한
+                if (value < 0) value = 0;
+                if (value > 24) value = 24;
+                inputElement.value = value;
+                
+                // 24시간인 경우 분은 0으로 제한
+                if (value === 24) {
+                    const minuteInput = inputElement.nextElementSibling.nextElementSibling;
+                    if (minuteInput) {
+                        minuteInput.value = "00";
+                        minuteInput.disabled = true;
+                    }
+                } else {
+                    const minuteInput = inputElement.nextElementSibling.nextElementSibling;
+                    if (minuteInput) {
+                        minuteInput.disabled = false;
+                    }
+                }
+            } else {
+                // 분은 0~59 범위로 제한
+                if (value < 0) value = 0;
+                if (value > 59) value = 59;
+                
+                // 시간이 24인 경우 분은 0으로 고정
+                const hourInput = inputElement.previousElementSibling.previousElementSibling;
+                if (hourInput && parseInt(hourInput.value) === 24) {
+                    value = 0;
+                    inputElement.disabled = true;
+                }
+                
+                // 두 자리 숫자로 표시 (00, 01, 02, ...)
+                inputElement.value = value.toString().padStart(2, '0');
+            }
+            
+            calculateTotals();
+        }
+
+        // 테이블 생성 후 기존 입력란에 유효성 검사 적용
+        function applyTimeValidation() {
+            const hoursInputs = document.querySelectorAll('.hours-input');
+            const minutesInputs = document.querySelectorAll('.minutes-input');
+            
+            hoursInputs.forEach(input => {
+                validateTimeInput(input, true);
+            });
+            
+            minutesInputs.forEach(input => {
+                validateTimeInput(input, false);
+            });
+        }
+
+        addAutoSaveListeners();
+        initYearSelect();
+        initMonthSelect();
+        calculateAll();
+        if (!loadData()) {
+            updateTable();
+        }
+        autoCalculateRemainingDays(); // 페이지 로드 시 자동으로 남은 근무일수 계산
+        updateRemainingDaysMax(); // 남은 근무일수 최대값 초기화
+    </script>
+</body>
+</html>
