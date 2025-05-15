@@ -681,7 +681,8 @@
                 };
                 
                 // 디버깅: 저장 전 상태 확인
-                console.log('저장 시도 데이터:', data);
+                console.log('저장 시도 키:', key);
+                console.log('저장 데이터 크기:', JSON.stringify(data).length, 'bytes');
                 
                 // 먼저 기존 데이터 비우기
                 localStorage.removeItem(key);
@@ -692,9 +693,43 @@
                 
                 // 저장 확인
                 const savedData = localStorage.getItem(key);
-                console.log('실제 저장된 데이터:', savedData ? '있음' : '없음');
+                const savedSuccess = savedData ? true : false;
+                console.log('저장 성공 여부:', savedSuccess);
                 
-                // sessionStorage에도 백업
+                if (!savedSuccess) {
+                    // 실패 시 다른 방법 시도
+                    console.log('다른 저장 방법 시도 중...');
+                    try {
+                        // 모든 로컬 스토리지 항목을 콘솔에 출력
+                        console.log('현재 로컬 스토리지 항목:');
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const itemKey = localStorage.key(i);
+                            console.log(`${i}: ${itemKey} (${localStorage.getItem(itemKey).length} bytes)`);
+                        }
+                        
+                        // 다른 키로 다시 시도
+                        const alternativeKey = `monthlyWork_${year}_${month}`;
+                        localStorage.setItem(alternativeKey, jsonData);
+                        console.log('대체 키로 저장 시도:', alternativeKey);
+                        
+                        // 세션 스토리지에도 시도
+                        sessionStorage.setItem(key, jsonData);
+                        sessionStorage.setItem(alternativeKey, jsonData);
+                        
+                        // 저장 성공 여부 다시 확인
+                        if (localStorage.getItem(alternativeKey) || sessionStorage.getItem(key)) {
+                            console.log('대체 저장 방법 성공');
+                            return true;
+                        } else {
+                            throw new Error('모든 저장 시도 실패');
+                        }
+                    } catch (altError) {
+                        console.error('대체 저장 방법도 실패:', altError);
+                        throw altError;
+                    }
+                }
+                
+                // 세션 스토리지에도 백업
                 try {
                     sessionStorage.setItem(key, jsonData);
                 } catch (e) {
@@ -705,7 +740,29 @@
                 return true;
             } catch (e) {
                 console.error('데이터 저장 실패:', e);
-                alert('데이터 저장에 실패했습니다: ' + e.message);
+                
+                // 로컬 스토리지 상태 확인
+                try {
+                    console.log('localStorage 가능 여부:', typeof localStorage !== 'undefined');
+                    console.log('localStorage 항목 수:', localStorage.length);
+                    console.log('sessionStorage 가능 여부:', typeof sessionStorage !== 'undefined');
+                    console.log('sessionStorage 항목 수:', sessionStorage.length);
+                    
+                    // 브라우저 정보 출력
+                    console.log('브라우저 정보:', navigator.userAgent);
+                    
+                    // 저장소 사용량 확인 (대략적)
+                    let totalSize = 0;
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        totalSize += localStorage.getItem(key).length;
+                    }
+                    console.log('localStorage 사용량(대략):', (totalSize / 1024).toFixed(2) + ' KB');
+                } catch (debugError) {
+                    console.error('디버깅 정보 수집 실패:', debugError);
+                }
+                
+                alert('데이터 저장에 실패했습니다: ' + e.message + '\n브라우저 콘솔을 확인해주세요.');
                 return false;
             }
         }
@@ -1431,16 +1488,31 @@
 
         // 수동 저장 기능
         function manualSave() {
+            console.log('수동 저장 버튼 클릭됨');
             if(saveData()) {
-                alert('현재 데이터가 브라우저에 저장되었습니다.');
-                
-                // 디버깅: 저장 직후 로드 확인
                 const year = document.getElementById('targetYear').value;
                 const month = document.getElementById('targetMonth').value;
                 const key = getStorageKey(year, month);
-                const savedData = localStorage.getItem(key);
                 
-                console.log('저장 직후 로드 데이터:', savedData ? JSON.parse(savedData) : '없음');
+                // 저장 확인
+                const savedData = localStorage.getItem(key);
+                if (savedData) {
+                    console.log('수동 저장 성공:', key);
+                    console.log('저장된 데이터 길이:', savedData.length);
+                    alert('현재 데이터가 브라우저에 저장되었습니다.');
+                } else {
+                    const alternativeKey = `monthlyWork_${year}_${month}`;
+                    const altData = localStorage.getItem(alternativeKey);
+                    if (altData) {
+                        console.log('대체 키로 저장 성공:', alternativeKey);
+                        alert('대체 방식으로 데이터가 저장되었습니다.');
+                    } else if (sessionStorage.getItem(key)) {
+                        console.log('세션 스토리지에 저장됨:', key);
+                        alert('세션 스토리지에 데이터가 저장되었습니다. (브라우저 닫으면 삭제됨)');
+                    } else {
+                        alert('데이터 저장 실패! 개발자 도구 콘솔을 확인해주세요.');
+                    }
+                }
             } else {
                 alert('데이터 저장에 실패했습니다. 브라우저 콘솔을 확인해주세요.');
             }
