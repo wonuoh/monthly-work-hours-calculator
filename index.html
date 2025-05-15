@@ -596,7 +596,7 @@
 
     <!-- 버전 정보 및 최종 수정일 표시 -->
     <div style="margin-top: 30px; padding-bottom: 20px; font-size: 11px; color: #999; opacity: 0.7; text-align: left;">
-        v1.0.0 (최종 수정: <span id="lastModifiedDate"></span>)
+        v1.0.1 (최종 수정: 2025-05-16 06:50:00)
     </div>
 
     <script>
@@ -694,55 +694,45 @@
                 
                 // 데이터 저장 시도
                 const jsonData = JSON.stringify(data);
-                localStorage.setItem(key, jsonData);
                 
-                // 저장 확인
-                const savedData = localStorage.getItem(key);
-                const savedSuccess = savedData ? true : false;
-                console.log('저장 성공 여부:', savedSuccess);
-                
-                if (!savedSuccess) {
-                    // 실패 시 다른 방법 시도
-                    console.log('다른 저장 방법 시도 중...');
-                    try {
-                        // 모든 로컬 스토리지 항목을 콘솔에 출력
-                        console.log('현재 로컬 스토리지 항목:');
-                        for (let i = 0; i < localStorage.length; i++) {
-                            const itemKey = localStorage.key(i);
-                            console.log(`${i}: ${itemKey} (${localStorage.getItem(itemKey).length} bytes)`);
-                        }
-                        
-                        // 다른 키로 다시 시도
-                        const alternativeKey = `monthlyWork_${year}_${month}`;
-                        localStorage.setItem(alternativeKey, jsonData);
-                        console.log('대체 키로 저장 시도:', alternativeKey);
-                        
-                        // 세션 스토리지에도 시도
-                        sessionStorage.setItem(key, jsonData);
-                        sessionStorage.setItem(alternativeKey, jsonData);
-                        
-                        // 저장 성공 여부 다시 확인
-                        if (localStorage.getItem(alternativeKey) || sessionStorage.getItem(key)) {
-                            console.log('대체 저장 방법 성공');
-                            return true;
-                        } else {
-                            throw new Error('모든 저장 시도 실패');
-                        }
-                    } catch (altError) {
-                        console.error('대체 저장 방법도 실패:', altError);
-                        throw altError;
-                    }
-                }
-                
-                // 세션 스토리지에도 백업
+                // GitHub Pages에서 localStorage 문제 해결을 위한 수정
                 try {
+                    // 직접 localStorage 접근 시도
+                    localStorage.setItem(key, jsonData);
+                    
+                    // 저장 확인
+                    const savedData = localStorage.getItem(key);
+                    if (!savedData || savedData !== jsonData) {
+                        throw new Error('데이터 저장 확인 실패');
+                    }
+                    
+                    // 세션 스토리지에도 백업
                     sessionStorage.setItem(key, jsonData);
-                } catch (e) {
-                    console.warn('세션 스토리지 백업 실패:', e);
+                    
+                    console.log(`데이터 저장 완료: ${key}`);
+                    return true;
+                } catch (storageError) {
+                    console.warn('localStorage 저장 실패, 대체 방법 시도:', storageError);
+                    
+                    // 대체 방법 1: 쿠키 사용
+                    const expiryDate = new Date();
+                    expiryDate.setMonth(expiryDate.getMonth() + 1);
+                    
+                    // 데이터 크기가 크므로 여러 쿠키로 분할
+                    const maxChunkSize = 4000; // 쿠키 크기 제한
+                    const chunks = Math.ceil(jsonData.length / maxChunkSize);
+                    
+                    for (let i = 0; i < chunks; i++) {
+                        const chunk = jsonData.substring(i * maxChunkSize, (i + 1) * maxChunkSize);
+                        document.cookie = `${key}_${i}=${encodeURIComponent(chunk)}; expires=${expiryDate.toUTCString()}; path=/`;
+                    }
+                    
+                    // 청크 수 저장
+                    document.cookie = `${key}_chunks=${chunks}; expires=${expiryDate.toUTCString()}; path=/`;
+                    
+                    console.log(`쿠키로 데이터 저장 완료: ${key} (${chunks} 청크)`);
+                    return true;
                 }
-                
-                console.log(`데이터 저장 완료: ${key}`);
-                return true;
             } catch (e) {
                 console.error('데이터 저장 실패:', e);
                 
@@ -779,13 +769,48 @@
             
             console.log('로드 시도 키:', key);
             
-            // 로컬 스토리지에서 시도
+            // 1. 로컬 스토리지에서 시도
             let savedData = localStorage.getItem(key);
             
-            // 로컬 스토리지에 없으면 세션 스토리지에서 시도
+            // 2. 로컬 스토리지에 없으면 세션 스토리지에서 시도
             if (!savedData) {
                 console.log('로컬 스토리지에 없음, 세션 스토리지 확인');
                 savedData = sessionStorage.getItem(key);
+            }
+            
+            // 3. 세션 스토리지에도 없으면 쿠키에서 시도
+            if (!savedData) {
+                console.log('세션 스토리지에 없음, 쿠키 확인');
+                
+                // 쿠키에서 청크 수 확인
+                const cookies = document.cookie.split(';');
+                const chunksCookie = cookies.find(c => c.trim().startsWith(`${key}_chunks=`));
+                
+                if (chunksCookie) {
+                    const chunks = parseInt(chunksCookie.split('=')[1]);
+                    let jsonData = '';
+                    
+                    // 모든 청크 수집
+                    for (let i = 0; i < chunks; i++) {
+                        const chunkCookie = cookies.find(c => c.trim().startsWith(`${key}_${i}=`));
+                        if (chunkCookie) {
+                            const chunk = decodeURIComponent(chunkCookie.split('=').slice(1).join('='));
+                            jsonData += chunk;
+                        }
+                    }
+                    
+                    if (jsonData) {
+                        savedData = jsonData;
+                        console.log('쿠키에서 데이터 로드 성공');
+                        
+                        // 로컬 스토리지에 다시 저장 시도
+                        try {
+                            localStorage.setItem(key, savedData);
+                        } catch (e) {
+                            console.warn('쿠키에서 로드한 데이터를 localStorage에 저장 실패:', e);
+                        }
+                    }
+                }
             }
             
             console.log('로드된 데이터:', savedData ? '있음' : '없음');
@@ -1541,7 +1566,7 @@
                 return true;
             } catch (e) {
                 console.error('로컬 스토리지를 사용할 수 없습니다:', e);
-                alert('브라우저 저장 기능이 비활성화되어 있습니다. 쿠키/로컬 스토리지 설정을 확인해주세요.');
+                alert('브라우저 저장 기능이 비활성화되어 있거나 GitHub Pages에서 제한될 수 있습니다.');
                 return false;
             }
         }
@@ -1558,9 +1583,6 @@
         setupWorkDaysListener(); // workDays 이벤트 리스너 설정 추가
         autoCalculateRemainingDays(); // 페이지 로드 시 자동으로 남은 근무일수 계산
         updateRemainingDaysMax(); // 남은 근무일수 최대값 초기화
-        
-        // 최종 수정일 표시
-        document.getElementById('lastModifiedDate').textContent = new Date().toLocaleString('ko-KR');
     </script>
 </body>
 </html>
