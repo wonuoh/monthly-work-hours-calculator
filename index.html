@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>월 근무시간 계산기</title>
+    <!-- GitHub Pages에서의 저장 문제 해결을 위한 메타 태그 추가 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <style>
         * {
             box-sizing: border-box;
@@ -652,12 +657,17 @@
 
         let currentMonthlyOvertimeMinutes = 0;
 
+        // 데이터 저장 키 생성 함수 (일관성 있는 키 생성)
+        function getStorageKey(year, month) {
+            return `monthlyWorkHours_${year}_${month}`;
+        }
+
         // 데이터 저장 및 로드 함수들
         function saveData() {
             try {
                 const year = document.getElementById('targetYear').value;
                 const month = document.getElementById('targetMonth').value;
-                const key = `workingTime_${year}_${month}`;
+                const key = getStorageKey(year, month);
                 
                 const data = {
                     targetHours: document.getElementById('targetHours').value,
@@ -670,11 +680,32 @@
                     lastSaved: new Date().toISOString() // 마지막 저장 시간 추가
                 };
                 
-                localStorage.setItem(key, JSON.stringify(data));
+                // 디버깅: 저장 전 상태 확인
+                console.log('저장 시도 데이터:', data);
+                
+                // 먼저 기존 데이터 비우기
+                localStorage.removeItem(key);
+                
+                // 데이터 저장 시도
+                const jsonData = JSON.stringify(data);
+                localStorage.setItem(key, jsonData);
+                
+                // 저장 확인
+                const savedData = localStorage.getItem(key);
+                console.log('실제 저장된 데이터:', savedData ? '있음' : '없음');
+                
+                // sessionStorage에도 백업
+                try {
+                    sessionStorage.setItem(key, jsonData);
+                } catch (e) {
+                    console.warn('세션 스토리지 백업 실패:', e);
+                }
+                
                 console.log(`데이터 저장 완료: ${key}`);
                 return true;
             } catch (e) {
                 console.error('데이터 저장 실패:', e);
+                alert('데이터 저장에 실패했습니다: ' + e.message);
                 return false;
             }
         }
@@ -682,12 +713,26 @@
         function loadData() {
             const year = document.getElementById('targetYear').value;
             const month = document.getElementById('targetMonth').value;
-            const key = `workingTime_${year}_${month}`;
+            const key = getStorageKey(year, month);
             
-            const savedData = localStorage.getItem(key);
+            console.log('로드 시도 키:', key);
+            
+            // 로컬 스토리지에서 시도
+            let savedData = localStorage.getItem(key);
+            
+            // 로컬 스토리지에 없으면 세션 스토리지에서 시도
+            if (!savedData) {
+                console.log('로컬 스토리지에 없음, 세션 스토리지 확인');
+                savedData = sessionStorage.getItem(key);
+            }
+            
+            console.log('로드된 데이터:', savedData ? '있음' : '없음');
+            
             if (savedData) {
                 try {
                     const data = JSON.parse(savedData);
+                    
+                    console.log('파싱된 데이터:', data);
                     
                     // 기본 설정 복원
                     document.getElementById('targetHours').value = data.targetHours || 153;
@@ -1386,8 +1431,19 @@
 
         // 수동 저장 기능
         function manualSave() {
-            saveData();
-            alert('현재 데이터가 브라우저에 저장되었습니다.');
+            if(saveData()) {
+                alert('현재 데이터가 브라우저에 저장되었습니다.');
+                
+                // 디버깅: 저장 직후 로드 확인
+                const year = document.getElementById('targetYear').value;
+                const month = document.getElementById('targetMonth').value;
+                const key = getStorageKey(year, month);
+                const savedData = localStorage.getItem(key);
+                
+                console.log('저장 직후 로드 데이터:', savedData ? JSON.parse(savedData) : '없음');
+            } else {
+                alert('데이터 저장에 실패했습니다. 브라우저 콘솔을 확인해주세요.');
+            }
         }
 
         // 페이지 로드 시 로컬 스토리지 기능 확인
@@ -1395,11 +1451,20 @@
             try {
                 const testKey = '_test_storage_';
                 localStorage.setItem(testKey, 'test');
+                const testResult = localStorage.getItem(testKey);
                 localStorage.removeItem(testKey);
+                
+                if (testResult !== 'test') {
+                    console.error('로컬 스토리지 테스트 실패: 값이 일치하지 않음');
+                    alert('브라우저 저장 기능이 정상적으로 동작하지 않습니다. 설정을 확인해주세요.');
+                    return false;
+                }
+                
+                console.log('로컬 스토리지 테스트 성공');
                 return true;
             } catch (e) {
                 console.error('로컬 스토리지를 사용할 수 없습니다:', e);
-                alert('브라우저 저장 기능이 비활성화되어 있습니다. 입력한 데이터가 저장되지 않을 수 있습니다.');
+                alert('브라우저 저장 기능이 비활성화되어 있습니다. 쿠키/로컬 스토리지 설정을 확인해주세요.');
                 return false;
             }
         }
