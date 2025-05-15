@@ -247,9 +247,16 @@
         }
         .btn-secondary {
             background-color: #666 !important;
+            margin-right: 5px;
+            margin-bottom: 5px;
         }
         .btn-secondary:hover {
             background-color: #555 !important;
+        }
+        
+        .btn-save {
+            background-color: black !important;
+            margin-left: 5px;
         }
         
         /* 테이블 반응형 */
@@ -347,6 +354,31 @@
             .table-mobile {
                 display: none;
             }
+            .button-group {
+                margin-bottom: 15px;
+            }
+            .button-group > div {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .button-group > div > div {
+                text-align: center !important;
+                margin: 0 0 10px 0 !important;
+            }
+            .button-group button {
+                width: 100%;
+                margin: 0 0 8px 0 !important;
+            }
+            .btn-secondary, .btn-save {
+                margin: 0 0 8px 0 !important;
+            }
+            .auto-save-hint {
+                text-align: center !important;
+            }
+            .table-hint-container {
+                justify-content: center;
+                margin: 10px 0;
+            }
         }
         
         @media (max-width: 480px) {
@@ -391,6 +423,18 @@
             font-weight: 700;
             color: white;
             text-decoration: underline;
+        }
+        .auto-save-hint {
+            font-size: 12px; 
+            color: #777; 
+            margin-top: 5px; 
+            text-align: right;
+        }
+        
+        .table-hint-container {
+            display: flex; 
+            justify-content: flex-end; 
+            margin-bottom: 5px;
         }
     </style>
 </head>
@@ -489,7 +533,7 @@
             </div>
         </div>
 
-        <!-- 버튼 섹션을 주황색 박스와 테이블 사이로 이동 -->
+        <!-- 주황색 박스 섹션 복원 -->
         <div class="overtime-section" id="overtimeSection">
             <h3>⏳ 이번 달 남은 초과근무시간</h3>
             <div class="value" id="monthlyOvertime">66분</div>
@@ -505,12 +549,22 @@
         </div>
 
         <!-- 버튼 그룹 이동 및 텍스트 변경 -->
-        <div style="text-align: center; margin-bottom: 20px;" class="button-group">
-            <button class="btn" onclick="resetAll()">실제 근무시간 초기화</button>
-            <button class="btn btn-secondary" onclick="clearAllData()">저장된 실제 근무시간 삭제</button>
+        <div style="margin-bottom: 20px;" class="button-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="text-align: left;">
+                    <button class="btn btn-secondary" onclick="resetAll()">이번 달 근무시간 초기화</button>
+                    <button class="btn btn-secondary" onclick="clearAllData()">전체 근무시간 삭제</button>
+                </div>
+                <div style="text-align: right; margin-left: auto;">
+                    <button class="btn btn-save" onclick="manualSave()">근무시간 수동 저장</button>
+                </div>
+            </div>
         </div>
 
         <div class="table-container">
+            <div class="table-hint-container">
+                <div class="auto-save-hint">※ 근무시간 입력 시 자동 저장됩니다.</div>
+            </div>
             <table>
                 <thead>
                     <tr>
@@ -600,21 +654,29 @@
 
         // 데이터 저장 및 로드 함수들
         function saveData() {
-            const year = document.getElementById('targetYear').value;
-            const month = document.getElementById('targetMonth').value;
-            const key = `workingTime_${year}_${month}`;
-            
-            const data = {
-                targetHours: document.getElementById('targetHours').value,
-                targetMinutes: document.getElementById('targetMinutes').value,
-                workDays: document.getElementById('workDays').value,
-                autoCalculateTarget: document.getElementById('autoCalculateTarget').checked,
-                autoCalculate: document.getElementById('autoCalculate').checked,
-                remainingDays: document.getElementById('remainingDays').value,
-                workTimeData: getWorkTimeData()
-            };
-            
-            localStorage.setItem(key, JSON.stringify(data));
+            try {
+                const year = document.getElementById('targetYear').value;
+                const month = document.getElementById('targetMonth').value;
+                const key = `workingTime_${year}_${month}`;
+                
+                const data = {
+                    targetHours: document.getElementById('targetHours').value,
+                    targetMinutes: document.getElementById('targetMinutes').value,
+                    workDays: document.getElementById('workDays').value,
+                    autoCalculateTarget: document.getElementById('autoCalculateTarget').checked,
+                    autoCalculate: document.getElementById('autoCalculate').checked,
+                    remainingDays: document.getElementById('remainingDays').value,
+                    workTimeData: getWorkTimeData(),
+                    lastSaved: new Date().toISOString() // 마지막 저장 시간 추가
+                };
+                
+                localStorage.setItem(key, JSON.stringify(data));
+                console.log(`데이터 저장 완료: ${key}`);
+                return true;
+            } catch (e) {
+                console.error('데이터 저장 실패:', e);
+                return false;
+            }
         }
 
         function loadData() {
@@ -640,10 +702,13 @@
                         setWorkTimeData(data.workTimeData);
                     }
                     
+                    console.log(`${key} 데이터 로드 성공, 마지막 저장: ${data.lastSaved || '알 수 없음'}`);
                     return true;
                 } catch (e) {
                     console.error('데이터 로드 실패:', e);
                 }
+            } else {
+                console.log(`${key} 에 저장된 데이터가 없습니다.`);
             }
             return false;
         }
@@ -1279,6 +1344,7 @@
             }
             
             calculateTotals();
+            saveData(); // 매 입력 변경 시마다 저장
         }
 
         // 테이블 생성 후 기존 입력란에 유효성 검사 적용
@@ -1318,11 +1384,33 @@
             }
         }
 
+        // 수동 저장 기능
+        function manualSave() {
+            saveData();
+            alert('현재 데이터가 브라우저에 저장되었습니다.');
+        }
+
+        // 페이지 로드 시 로컬 스토리지 기능 확인
+        function checkLocalStorage() {
+            try {
+                const testKey = '_test_storage_';
+                localStorage.setItem(testKey, 'test');
+                localStorage.removeItem(testKey);
+                return true;
+            } catch (e) {
+                console.error('로컬 스토리지를 사용할 수 없습니다:', e);
+                alert('브라우저 저장 기능이 비활성화되어 있습니다. 입력한 데이터가 저장되지 않을 수 있습니다.');
+                return false;
+            }
+        }
+
         addAutoSaveListeners();
         initYearSelect();
         initMonthSelect();
+        checkLocalStorage(); // 로컬 스토리지 기능 확인
         calculateAll();
         if (!loadData()) {
+            console.log('저장된 데이터가 없어 테이블을 새로 생성합니다.');
             updateTable();
         }
         setupWorkDaysListener(); // workDays 이벤트 리스너 설정 추가
