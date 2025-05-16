@@ -8,6 +8,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
     <script type="module" src="https://tomashubelbauer.github.io/github-pages-local-storage/index.js"></script>
 
     <style>
@@ -15,7 +16,7 @@
             box-sizing: border-box;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             max-width: 1200px;
             margin: 0 auto;
             padding: 10px;
@@ -418,6 +419,9 @@
             .auto-calc-checkbox.pc-only {
                 display: none !important;
             }
+            .overtime-flex-boxes {
+                flex-direction: column !important;
+            }
         }
         
         @media (min-width: 768px) {
@@ -445,7 +449,7 @@
     </style>
 </head>
 <body>
-    <h1>📅 월 근무시간 계산기</h1>
+    <h1>⏱️ 월 근무시간 계산기</h1>
     <div style="background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); padding: 18px 18px 12px 18px; margin-bottom: 18px; color: #444; font-size: 15px;">
         <b>월 근무시간 계산기</b>는 한 달 동안의 근무일수와 필수 근무시간, 그리고 일별 실제 근무시간을 쉽게 관리할 수 있는 도구입니다.<br>
         <ul style="margin: 8px 0 0 18px; padding: 0; font-size: 14px;">
@@ -500,10 +504,12 @@
             
             <!-- 월 필수 근무시간 (세 번째 줄) -->
             <div class="input-row">
-                <div class="input-group target-hours-container">
-                    <label for="targetHours">월 필수 근무시간 (시간)</label>
-                    <input type="number" id="targetHours" value="153" min="0" step="1" readonly>
-                    
+                <div class="input-group target-hours-container" style="grid-column: 1 / span 2;">
+                    <label for="targetHours">월 필수 근무시간</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="number" id="targetHours" value="153" min="0" step="1" style="width: 80px;"> 시간
+                        <input type="number" id="targetMinutes" value="6" min="0" max="59" step="1" style="width: 80px;"> 분
+                    </div>
                     <!-- PC/태블릿에서만 표시 -->
                     <div class="checkbox-group auto-calc-checkbox pc-only">
                         <label class="checkbox-label">
@@ -511,11 +517,6 @@
                             자동 계산
                         </label>
                     </div>
-                </div>
-                <div class="input-group">
-                    <label for="targetMinutes">월 필수 근무시간 (분)</label>
-                    <input type="number" id="targetMinutes" value="6" min="0" max="59" step="1" readonly>
-                    
                     <!-- 모바일에서만 표시 -->
                     <div class="checkbox-group auto-calc-checkbox mobile-only">
                         <label class="checkbox-label">
@@ -523,7 +524,6 @@
                             자동 계산
                         </label>
                     </div>
-                    
                     <div class="formula-display" id="targetFormula">
                         40시간 × (31일/7일) - (3일×8시간) = 153시간 6분
                     </div>
@@ -547,18 +547,22 @@
             </div>
         </div>
 
-        <!-- 주황색 박스 섹션 복원 -->
-        <div class="overtime-section" id="overtimeSection">
-            <h3>⏳ 이번 달 남은 초과근무시간</h3>
-            <div class="value" id="monthlyOvertime">66분</div>
-            
-            <div class="overtime-controls">
-                <div class="overtime-input-row">
-                    <label for="remainingDays">남은 근무일수:</label>
-                    <input type="number" id="remainingDays" value="0" min="0" max="31" onchange="validateRemainingDays()" onkeyup="validateRemainingDays()">
-                    <button class="btn" onclick="calculateRemainingWorkdays()" style="padding: 5px 8px;">오늘 포함 자동 계산</button>
+        <!-- 월/일 정보 박스 분리 -->
+        <div class="overtime-flex-boxes" style="display: flex; gap: 16px; margin-bottom: 20px;">
+            <!-- 월 정보: 주황색 박스 -->
+            <div style="flex:1; background: linear-gradient(135deg, #FF6A0D, #E55A0B); color: #fff; border-radius: 12px; padding: 22px 18px; font-weight: bold; font-size: 1.7rem; display: flex; align-items: center; justify-content: center; min-width: 0;">
+                <div id="monthlyOvertime" style="text-align:center; width:100%">🔥 이번 달은 66분 더 근무해야 합니다. (기본 8시간/일 기준)</div>
+            </div>
+            <!-- 일 정보: 검은색 박스 -->
+            <div style="flex:1; background: #222; color: #fff; border-radius: 12px; padding: 22px 18px; min-width: 0;">
+                <div class="overtime-controls" style="margin-bottom: 10px;">
+                    <div class="overtime-input-row" style="margin-bottom: 10px;">
+                        <label for="remainingDays" style="font-size:1rem;">남은 근무일수:</label>
+                        <input type="number" id="remainingDays" value="0" min="0" max="31" onchange="validateRemainingDays()" onkeyup="validateRemainingDays()" style="width: 60px; margin: 0 8px;">
+                        <button class="btn" onclick="calculateRemainingWorkdays()" style="padding: 5px 8px;">오늘 포함 자동 계산</button>
+                    </div>
                 </div>
-                <div class="average-display" id="averageOvertime">⏱️ 남은 근무일 동안 하루 평균 0분 초과근무가 필요합니다.</div>
+                <div class="average-display" id="averageOvertime" style="font-size:1.1rem; color:#fff;">💪 하루 평균 6분 더 근무 필요<br><span style="font-size:12px;color:#bbb;">(기본 8시간/일 기준)</span></div>
             </div>
         </div>
 
@@ -923,15 +927,28 @@
             calculateTotals();
         }
 
-        function calculateRemainingAverage() {
-            const remainingOvertimeMinutes = parseInt(document.getElementById('monthlyOvertime').textContent) || 0;
+        function calculateRemainingAverage(remainingOvertimeMinutes) {
             const remainingDays = parseInt(document.getElementById('remainingDays').value) || 0;
-            
-            if (remainingDays > 0 && remainingOvertimeMinutes > 0) {
-                const averageMinutes = Math.round(remainingOvertimeMinutes / remainingDays);
-                document.getElementById('averageOvertime').innerHTML = `⏱️ 남은 근무일 동안 하루 평균 <span class="average-minutes">${averageMinutes}분</span> 초과근무가 필요합니다.`;
+            const CORE_TIME_MINUTES = 360; // 6시간
+
+            if (remainingDays > 0) {
+                if (remainingOvertimeMinutes > 0) {
+                    const averageMinutes = Math.round(remainingOvertimeMinutes / remainingDays);
+                    document.getElementById('averageOvertime').innerHTML =
+                        `💪 하루 평균 <span class="average-minutes">${averageMinutes}분</span> 더 근무 필요<br><span style="font-size:12px;color:#bbb;">(기본 8시간/일 기준)</span>`;
+                } else if (remainingOvertimeMinutes < 0) {
+                    let averageEarlyLeave = Math.floor(Math.abs(remainingOvertimeMinutes) / remainingDays);
+                    const maxEarlyLeave = 480 - CORE_TIME_MINUTES;
+                    if (averageEarlyLeave > maxEarlyLeave) averageEarlyLeave = maxEarlyLeave;
+                    document.getElementById('averageOvertime').innerHTML =
+                        `😎 하루 평균 <span class="average-minutes">${averageEarlyLeave}분</span> 일찍 퇴근 가능<br><span style="font-size:12px;color:#bbb;">(기본 8시간/일 기준)<br>*단, 코어타임 6시간(오전 10:30 ~ 오후 5:30)은 필수로 근무해야 합니다.</span>`;
+                } else {
+                    document.getElementById('averageOvertime').innerHTML =
+                        `💪 하루 평균 <span class="average-minutes">0분</span> 추가 근무 필요 없음<br><span style="font-size:12px;color:#bbb;">(기본 8시간/일 기준)</span>`;
+                }
             } else {
-                document.getElementById('averageOvertime').innerHTML = `⏱️ 남은 근무일 동안 하루 평균 <span class="average-minutes">0분</span> 초과근무가 필요합니다.`;
+                document.getElementById('averageOvertime').innerHTML =
+                    `💪 하루 평균 <span class="average-minutes">0분</span> 추가 근무 필요 없음<br><span style="font-size:12px;color:#bbb;">(기본 8시간/일 기준)</span>`;
             }
             saveAllWorkInputs();
         }
@@ -972,7 +989,7 @@
             document.getElementById('totalMinutesDisplay').textContent = `(${totalTargetMinutes.toLocaleString()}분)`;
             document.getElementById('dailyAverage').textContent = `${dailyAverageHours}시간 ${dailyAverageRemainingMinutes}분`;
             document.getElementById('dailyAverageMinutes').textContent = `(${dailyAverageMinutes}분)`;
-            document.getElementById('monthlyOvertime').textContent = `${currentMonthlyOvertimeMinutes}분`;
+            document.getElementById('monthlyOvertime').textContent = currentMonthlyOvertimeMinutes + '분';
             
             // 남은 근무일수 입력 필드의 최대값을 해당 월의 일수로 제한
             const year = parseInt(document.getElementById('targetYear').value);
@@ -984,7 +1001,7 @@
             const remainingDays = parseInt(document.getElementById('remainingDays').value) || 0;
             if (remainingDays > daysInMonth) {
                 document.getElementById('remainingDays').value = daysInMonth;
-                calculateRemainingAverage();
+                calculateRemainingAverage(currentMonthlyOvertimeMinutes);
             }
 
             updateTable();
@@ -1054,8 +1071,21 @@
                 }
             }
             
-            document.getElementById('monthlyOvertime').textContent = Math.max(0, remainingOvertimeMinutes) + '분';
-            calculateRemainingAverage();
+            // 남은 초과근무시간 안내문구(이모지+텍스트 분리)로만 업데이트
+            const monthlyOvertimeElem = document.getElementById('monthlyOvertime');
+            if (remainingOvertimeMinutes > 0) {
+                monthlyOvertimeElem.innerHTML = `🔥 이번 달은 ${remainingOvertimeMinutes}분 더 근무해야 합니다.<br><span style="font-size:13px;color:#eee;">(기본 8시간/일 기준)</span>`;
+            } else if (remainingOvertimeMinutes < 0) {
+                monthlyOvertimeElem.innerHTML = `🎉 이번 달은 ${Math.abs(remainingOvertimeMinutes)}분 덜 근무해도 됩니다.<br><span style="font-size:13px;color:#eee;">(기본 8시간/일 기준)</span>`;
+            } else {
+                monthlyOvertimeElem.innerHTML = `⏱️ 이번 달은 추가 근무가 필요하지 않습니다.<br><span style="font-size:13px;color:#eee;">(기본 8시간/일 기준)</span>`;
+            }
+            monthlyOvertimeElem.style.color = '#fff';
+            monthlyOvertimeElem.style.fontWeight = 'bold';
+            monthlyOvertimeElem.style.fontSize = '1.7rem';
+            monthlyOvertimeElem.className = '';
+            document.getElementById('averageOvertime').style.display = '';
+            calculateRemainingAverage(remainingOvertimeMinutes);
             
             const totalHours = Math.floor(totalActualMinutes / 60);
             const totalMin = totalActualMinutes % 60;
@@ -1118,16 +1148,14 @@
             const yearSelect = document.getElementById('targetYear');
             const currentYear = new Date().getFullYear();
             yearSelect.innerHTML = '';
-            
-            // 2025년부터 2027년까지만 표시
             for (let year = 2025; year <= 2027; year++) {
                 const option = document.createElement('option');
                 option.value = year;
                 option.textContent = year + '년';
-                if (year === currentYear) option.selected = true;
-                else if (year === 2025 && currentYear < 2025) option.selected = true; // 현재가 2025년 이전이면 2025년 선택
                 yearSelect.appendChild(option);
             }
+            // 현재 연도 자동 선택
+            yearSelect.value = currentYear;
         }
 
         function initMonthSelect() {
@@ -1135,6 +1163,15 @@
             const currentMonth = new Date().getMonth() + 1;
             monthSelect.value = currentMonth;
         }
+
+        // 페이지 로드시 현재 연/월 자동 선택 및 계산 트리거
+        window.addEventListener('DOMContentLoaded', function() {
+            initYearSelect();
+            initMonthSelect();
+            // change 이벤트 강제 트리거로 계산 자동 실행
+            document.getElementById('targetYear').dispatchEvent(new Event('change'));
+            document.getElementById('targetMonth').dispatchEvent(new Event('change'));
+        });
 
         // 현재 날짜 기준으로 남은 근무일수 계산 함수
         function calculateRemainingWorkdays() {
@@ -1168,7 +1205,7 @@
             }
             
             document.getElementById('remainingDays').value = remainingDays;
-            calculateRemainingAverage();
+            calculateRemainingAverage(currentMonthlyOvertimeMinutes);
         }
         
         // 페이지 로드 시 자동으로 남은 근무일수 계산
@@ -1184,7 +1221,7 @@
                 // 이번 달이 아닌 경우, 월 전체 근무일수를 남은 근무일수로 설정
                 const workDays = parseInt(document.getElementById('workDays').value) || 0;
                 document.getElementById('remainingDays').value = workDays;
-                calculateRemainingAverage();
+                calculateRemainingAverage(currentMonthlyOvertimeMinutes);
             }
         }
 
@@ -1210,7 +1247,7 @@
                 remainingDaysInput.value = 0;
             }
             
-            calculateRemainingAverage();
+            calculateRemainingAverage(currentMonthlyOvertimeMinutes);
         }
 
         // 페이지 로드 및 월 변경 시 남은 근무일수 최대값 설정
@@ -1225,7 +1262,7 @@
             // 현재 값이 새 최대값을 초과하면 조정
             if (parseInt(remainingDaysInput.value) > daysInMonth) {
                 remainingDaysInput.value = daysInMonth;
-                calculateRemainingAverage();
+                calculateRemainingAverage(currentMonthlyOvertimeMinutes);
             }
         }
 
