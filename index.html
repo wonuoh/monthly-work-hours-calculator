@@ -689,17 +689,42 @@
             }
         }
 
-        // 테이블 갱신 후 자동 복원
+        // 테이블 갱신 후 자동 복원 및 상단 정보 갱신
         function updateTableAndRestore() {
+            calculateWorkDays();
+            calculateTargetHours();
+            updateCalculations();
             updateTable();
             loadAllWorkInputs();
             calculateTotals();
         }
 
-        // 기존 이벤트 리스너에 저장/복원 연결
+        // 기존 이벤트 리스너에 저장/복원 및 자동계산 리스너 연결
         function addAutoSaveListeners() {
             document.getElementById('targetYear').addEventListener('change', updateTableAndRestore);
             document.getElementById('targetMonth').addEventListener('change', updateTableAndRestore);
+            // 자동계산 관련 리스너 복원
+            document.getElementById('autoCalculateTarget').addEventListener('change', () => {
+                const autoCalculateTarget = document.getElementById('autoCalculateTarget').checked;
+                const targetHoursInput = document.getElementById('targetHours');
+                const targetMinutesInput = document.getElementById('targetMinutes');
+                targetHoursInput.readOnly = autoCalculateTarget;
+                targetMinutesInput.readOnly = autoCalculateTarget;
+                if (autoCalculateTarget) {
+                    calculateTargetHours();
+                } else {
+                    document.getElementById('targetFormula').textContent = '수동 입력 모드';
+                }
+            });
+            document.getElementById('autoCalculate').addEventListener('change', () => {
+                const autoCalculate = document.getElementById('autoCalculate').checked;
+                const workDaysInput = document.getElementById('workDays');
+                if (autoCalculate) {
+                    calculateWorkDays();
+                } else {
+                    workDaysInput.readOnly = false;
+                }
+            });
         }
 
         // 입력란 변경 시마다 저장
