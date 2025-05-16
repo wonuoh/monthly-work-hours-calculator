@@ -8,6 +8,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <script type="module" src="https://tomashubelbauer.github.io/github-pages-local-storage/index.js"></script>
 
     <style>
         * {
@@ -558,18 +559,11 @@
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="text-align: left;">
                     <button class="btn btn-secondary" onclick="resetAll()">이번 달 근무시간 초기화</button>
-                    <button class="btn btn-secondary" onclick="clearAllData()">전체 근무시간 삭제</button>
-                </div>
-                <div style="text-align: right; margin-left: auto;">
-                    <button class="btn btn-save" onclick="manualSave()">근무시간 수동 저장</button>
                 </div>
             </div>
         </div>
 
         <div class="table-container">
-            <div class="table-hint-container">
-                <div class="auto-save-hint">※ 근무시간 입력 시 자동 저장됩니다.</div>
-            </div>
             <table>
                 <thead>
                     <tr>
@@ -596,7 +590,7 @@
 
     <!-- 버전 정보 및 최종 수정일 표시 -->
     <div style="margin-top: 30px; padding-bottom: 20px; font-size: 11px; color: #999; opacity: 0.7; text-align: left;">
-        v1.0.2 (최종 수정: 2025-05-16 06:56:00)
+        v1.0.5 (최종 수정: 2025-05-16 10:47:00)
     </div>
 
     <script>
@@ -662,231 +656,65 @@
 
         let currentMonthlyOvertimeMinutes = 0;
 
-        // 데이터 저장 키 생성 함수 (일관성 있는 키 생성)
-        function getStorageKey(year, month) {
-            return `monthlyWorkHours_${year}_${month}`;
-        }
-
-        // 데이터 저장 및 로드 함수들
-        function saveData() {
-            try {
-                const year = document.getElementById('targetYear').value;
-                const month = document.getElementById('targetMonth').value;
-                const key = getStorageKey(year, month);
-                
-                const data = {
-                    targetHours: document.getElementById('targetHours').value,
-                    targetMinutes: document.getElementById('targetMinutes').value,
-                    workDays: document.getElementById('workDays').value,
-                    autoCalculateTarget: document.getElementById('autoCalculateTarget').checked,
-                    autoCalculate: document.getElementById('autoCalculate').checked,
-                    remainingDays: document.getElementById('remainingDays').value,
-                    workTimeData: getWorkTimeData(),
-                    lastSaved: new Date().toISOString() // 마지막 저장 시간 추가
-                };
-                
-                // 디버깅: 저장 전 상태 확인
-                console.log('저장 시도 키:', key);
-                console.log('저장 데이터 크기:', JSON.stringify(data).length, 'bytes');
-                
-                // 먼저 기존 데이터 비우기
-                localStorage.removeItem(key);
-                
-                // 데이터 저장 시도
-                const jsonData = JSON.stringify(data);
-                
-                // GitHub Pages에서 localStorage 문제 해결을 위한 수정
-                try {
-                    // 직접 localStorage 접근 시도
-                    localStorage.setItem(key, jsonData);
-                    
-                    // 저장 확인
-                    const savedData = localStorage.getItem(key);
-                    if (!savedData || savedData !== jsonData) {
-                        throw new Error('데이터 저장 확인 실패');
-                    }
-                    
-                    // 세션 스토리지에도 백업
-                    sessionStorage.setItem(key, jsonData);
-                    
-                    console.log(`데이터 저장 완료: ${key}`);
-                    return true;
-                } catch (storageError) {
-                    console.warn('localStorage 저장 실패, 대체 방법 시도:', storageError);
-                    
-                    // 대체 방법 1: 쿠키 사용
-                    const expiryDate = new Date();
-                    expiryDate.setMonth(expiryDate.getMonth() + 1);
-                    
-                    // 데이터 크기가 크므로 여러 쿠키로 분할
-                    const maxChunkSize = 4000; // 쿠키 크기 제한
-                    const chunks = Math.ceil(jsonData.length / maxChunkSize);
-                    
-                    for (let i = 0; i < chunks; i++) {
-                        const chunk = jsonData.substring(i * maxChunkSize, (i + 1) * maxChunkSize);
-                        document.cookie = `${key}_${i}=${encodeURIComponent(chunk)}; expires=${expiryDate.toUTCString()}; path=/`;
-                    }
-                    
-                    // 청크 수 저장
-                    document.cookie = `${key}_chunks=${chunks}; expires=${expiryDate.toUTCString()}; path=/`;
-                    
-                    console.log(`쿠키로 데이터 저장 완료: ${key} (${chunks} 청크)`);
-                    return true;
-                }
-            } catch (e) {
-                console.error('데이터 저장 실패:', e);
-                
-                // 로컬 스토리지 상태 확인
-                try {
-                    console.log('localStorage 가능 여부:', typeof localStorage !== 'undefined');
-                    console.log('localStorage 항목 수:', localStorage.length);
-                    console.log('sessionStorage 가능 여부:', typeof sessionStorage !== 'undefined');
-                    console.log('sessionStorage 항목 수:', sessionStorage.length);
-                    
-                    // 브라우저 정보 출력
-                    console.log('브라우저 정보:', navigator.userAgent);
-                    
-                    // 저장소 사용량 확인 (대략적)
-                    let totalSize = 0;
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const key = localStorage.key(i);
-                        totalSize += localStorage.getItem(key).length;
-                    }
-                    console.log('localStorage 사용량(대략):', (totalSize / 1024).toFixed(2) + ' KB');
-                } catch (debugError) {
-                    console.error('디버깅 정보 수집 실패:', debugError);
-                }
-                
-                alert('데이터 저장에 실패했습니다: ' + e.message + '\n브라우저 콘솔을 확인해주세요.');
-                return false;
-            }
-        }
-
-        function loadData() {
-            const year = document.getElementById('targetYear').value;
-            const month = document.getElementById('targetMonth').value;
-            const key = getStorageKey(year, month);
-            
-            console.log('로드 시도 키:', key);
-            
-            // 1. 로컬 스토리지에서 시도
-            let savedData = localStorage.getItem(key);
-            
-            // 2. 로컬 스토리지에 없으면 세션 스토리지에서 시도
-            if (!savedData) {
-                console.log('로컬 스토리지에 없음, 세션 스토리지 확인');
-                savedData = sessionStorage.getItem(key);
-            }
-            
-            // 3. 세션 스토리지에도 없으면 쿠키에서 시도
-            if (!savedData) {
-                console.log('세션 스토리지에 없음, 쿠키 확인');
-                
-                // 쿠키에서 청크 수 확인
-                const cookies = document.cookie.split(';');
-                const chunksCookie = cookies.find(c => c.trim().startsWith(`${key}_chunks=`));
-                
-                if (chunksCookie) {
-                    const chunks = parseInt(chunksCookie.split('=')[1]);
-                    let jsonData = '';
-                    
-                    // 모든 청크 수집
-                    for (let i = 0; i < chunks; i++) {
-                        const chunkCookie = cookies.find(c => c.trim().startsWith(`${key}_${i}=`));
-                        if (chunkCookie) {
-                            const chunk = decodeURIComponent(chunkCookie.split('=').slice(1).join('='));
-                            jsonData += chunk;
-                        }
-                    }
-                    
-                    if (jsonData) {
-                        savedData = jsonData;
-                        console.log('쿠키에서 데이터 로드 성공');
-                        
-                        // 로컬 스토리지에 다시 저장 시도
-                        try {
-                            localStorage.setItem(key, savedData);
-                        } catch (e) {
-                            console.warn('쿠키에서 로드한 데이터를 localStorage에 저장 실패:', e);
-                        }
-                    }
-                }
-            }
-            
-            console.log('로드된 데이터:', savedData ? '있음' : '없음');
-            
-            if (savedData) {
-                try {
-                    const data = JSON.parse(savedData);
-                    
-                    console.log('파싱된 데이터:', data);
-                    
-                    // 기본 설정 복원
-                    document.getElementById('targetHours').value = data.targetHours || 153;
-                    document.getElementById('targetMinutes').value = data.targetMinutes || 6;
-                    document.getElementById('workDays').value = data.workDays || 19;
-                    document.getElementById('autoCalculateTarget').checked = data.autoCalculateTarget !== false;
-                    document.getElementById('autoCalculate').checked = data.autoCalculate !== false;
-                    document.getElementById('remainingDays').value = data.remainingDays || 0;
-                    
-                    // 근무시간 데이터 복원
-                    if (data.workTimeData) {
-                        setWorkTimeData(data.workTimeData);
-                    }
-                    
-                    console.log(`${key} 데이터 로드 성공, 마지막 저장: ${data.lastSaved || '알 수 없음'}`);
-                    return true;
-                } catch (e) {
-                    console.error('데이터 로드 실패:', e);
-                }
-            } else {
-                console.log(`${key} 에 저장된 데이터가 없습니다.`);
-            }
-            return false;
-        }
-
-        function getWorkTimeData() {
-            const data = {};
+        // 근무시간 입력값을 항상 localStorage에 저장/복원하는 단순화된 구조
+        function saveAllWorkInputs() {
             const rows = document.getElementById('workTable').rows;
-            
+            const data = [];
             for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const timeCell = row.cells[2];
+                const timeCell = rows[i].cells[2];
                 const inputs = timeCell.getElementsByTagName('input');
-                
                 if (inputs.length >= 2) {
-                    const day = i + 1;
-                    const hours = inputs[0].value;
-                    const minutes = inputs[1].value;
-                    
-                    // 기본값(8:00)이 아닌 경우만 저장
-                    if (hours !== '8' || minutes !== '00') {
-                        data[day] = { hours, minutes };
-                    }
+                    data.push({
+                        hours: inputs[0].value,
+                        minutes: inputs[1].value
+                    });
+                } else {
+                    data.push(null); // 휴일 등 입력란 없는 경우
                 }
             }
-            
-            return data;
+            localStorage.setItem('allWorkInputs', JSON.stringify(data));
         }
 
-        function setWorkTimeData(data) {
+        function loadAllWorkInputs() {
+            const data = JSON.parse(localStorage.getItem('allWorkInputs') || '[]');
             const rows = document.getElementById('workTable').rows;
-            
             for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const timeCell = row.cells[2];
+                if (!data[i]) continue;
+                const timeCell = rows[i].cells[2];
                 const inputs = timeCell.getElementsByTagName('input');
-                
                 if (inputs.length >= 2) {
-                    const day = i + 1;
-                    
-                    if (data[day]) {
-                        inputs[0].value = data[day].hours;
-                        inputs[1].value = data[day].minutes;
-                    }
+                    inputs[0].value = data[i].hours;
+                    inputs[1].value = data[i].minutes;
                 }
             }
         }
+
+        // 테이블 갱신 후 자동 복원
+        function updateTableAndRestore() {
+            updateTable();
+            loadAllWorkInputs();
+            calculateTotals();
+        }
+
+        // 기존 이벤트 리스너에 저장/복원 연결
+        function addAutoSaveListeners() {
+            document.getElementById('targetYear').addEventListener('change', updateTableAndRestore);
+            document.getElementById('targetMonth').addEventListener('change', updateTableAndRestore);
+        }
+
+        // 입력란 변경 시마다 저장
+        function addInputAutoSave() {
+            document.addEventListener('input', function(e) {
+                if (e.target.classList.contains('hours-input') || e.target.classList.contains('minutes-input')) {
+                    saveAllWorkInputs();
+                }
+            });
+        }
+
+        // 페이지 로드 시
+        addAutoSaveListeners();
+        addInputAutoSave();
+        updateTableAndRestore();
 
         function isHoliday(year, month, day) {
             // 먼저 연도별 공휴일 확인 (우선순위 높음)
@@ -1072,12 +900,12 @@
             } else {
                 document.getElementById('averageOvertime').innerHTML = `⏱️ 남은 근무일 동안 하루 평균 <span class="average-minutes">0분</span> 초과근무가 필요합니다.`;
             }
-            saveData(); // 남은 근무일수 변경 시 저장
+            saveAllWorkInputs();
         }
 
         function calculateAll() {
             // 근무시간 데이터 먼저 저장
-            const workTimeData = getWorkTimeData();
+            saveAllWorkInputs();
             
             // 필요한 계산 수행
             calculateWorkDays();
@@ -1085,13 +913,13 @@
             updateCalculations();
             
             // 근무시간 데이터 복원
-            setWorkTimeData(workTimeData);
+            loadAllWorkInputs();
             
             // 테이블 재계산
             calculateTotals();
             
             // 변경사항 저장
-            saveData();
+            saveAllWorkInputs();
         }
 
         function updateCalculations() {
@@ -1214,7 +1042,7 @@
                 totalDiffElement.className = 'zero';
             }
             
-            saveData(); // 계산 완료 후 저장
+            saveAllWorkInputs();
         }
 
         function resetAll() {
@@ -1251,76 +1079,6 @@
                 alert('모든 데이터가 삭제되었습니다.');
                 location.reload(); // 페이지 새로고침
             }
-        }
-
-        // 자동 저장 리스너 추가 및 초기화
-        function addAutoSaveListeners() {
-            // 년도/월 변경 시 데이터 저장 후 로드
-            document.getElementById('targetYear').addEventListener('change', () => {
-                saveData();
-                updateTable(); // 테이블 먼저 새로 그림
-                loadData();    // 저장된 데이터 복원
-                // 데이터 로드 후에 월 근무일수, 목표시간을 다시 계산
-                calculateWorkDays();
-                calculateTargetHours();
-                updateCalculations();
-                updateRemainingDaysMax(); // 남은 근무일수 최대값 업데이트
-                autoCalculateRemainingDays(); // 남은 근무일수 자동 계산 추가
-            });
-            
-            document.getElementById('targetMonth').addEventListener('change', () => {
-                saveData();
-                updateTable();
-                loadData();
-                // 데이터 로드 후에 월 근무일수, 목표시간을 다시 계산
-                calculateWorkDays();
-                calculateTargetHours();
-                updateCalculations();
-                updateRemainingDaysMax(); // 남은 근무일수 최대값 업데이트
-                autoCalculateRemainingDays(); // 남은 근무일수 자동 계산 추가
-            });
-            
-            // 기본 설정 변경 시 자동 저장
-            document.getElementById('targetHours').addEventListener('input', () => {
-                updateCalculations();
-            });
-            document.getElementById('targetMinutes').addEventListener('input', () => {
-                updateCalculations();
-            });
-            document.getElementById('workDays').addEventListener('input', () => {
-                updateCalculations();
-            });
-            document.getElementById('autoCalculateTarget').addEventListener('change', () => {
-                const autoCalculateTarget = document.getElementById('autoCalculateTarget').checked;
-                const targetHoursInput = document.getElementById('targetHours');
-                const targetMinutesInput = document.getElementById('targetMinutes');
-                
-                targetHoursInput.readOnly = autoCalculateTarget;
-                targetMinutesInput.readOnly = autoCalculateTarget;
-                
-                if (autoCalculateTarget) {
-                    calculateTargetHours();
-                } else {
-                    document.getElementById('targetFormula').textContent = '수동 입력 모드';
-                }
-                saveData();
-            });
-            document.getElementById('autoCalculate').addEventListener('change', () => {
-                const autoCalculate = document.getElementById('autoCalculate').checked;
-                const workDaysInput = document.getElementById('workDays');
-                
-                if (autoCalculate) {
-                    // 자동 계산이 켜지면 월 근무일수 다시 계산
-                    calculateWorkDays();
-                } else {
-                    // 자동 계산이 꺼지면 월 근무일수 편집 가능하게 설정
-                    workDaysInput.readOnly = false;
-                    setupWorkDaysListener(); // workDays 이벤트 리스너 설정
-                }
-                saveData();
-            });
-            document.getElementById('remainingDays').addEventListener('change', validateRemainingDays);
-            document.getElementById('remainingDays').addEventListener('input', validateRemainingDays);
         }
 
         function initYearSelect() {
@@ -1478,7 +1236,7 @@
             }
             
             calculateTotals();
-            saveData(); // 매 입력 변경 시마다 저장
+            saveAllWorkInputs();
         }
 
         // 테이블 생성 후 기존 입력란에 유효성 검사 적용
@@ -1495,33 +1253,10 @@
             });
         }
 
-        // workDays 변경 이벤트 리스너 설정
-        function setupWorkDaysListener() {
-            const workDaysInput = document.getElementById('workDays');
-            
-            // 기존 이벤트 리스너 제거 (새 리스너 등록 전에)
-            workDaysInput.removeEventListener('input', updateRemainingDaysFromWorkDays);
-            workDaysInput.addEventListener('input', updateRemainingDaysFromWorkDays);
-        }
-        
-        // workDays 변경 시 remainingDays 업데이트 함수
-        function updateRemainingDaysFromWorkDays(event) {
-            const today = new Date();
-            const selectedYear = parseInt(document.getElementById('targetYear').value);
-            const selectedMonth = parseInt(document.getElementById('targetMonth').value);
-            
-            // 이번 달이 아닌 경우에만 workDays를 remainingDays에 반영
-            if (selectedYear !== today.getFullYear() || selectedMonth !== today.getMonth() + 1) {
-                const workDays = parseInt(document.getElementById('workDays').value) || 0;
-                document.getElementById('remainingDays').value = workDays;
-                calculateRemainingAverage();
-            }
-        }
-
         // 수동 저장 기능
         function manualSave() {
             console.log('수동 저장 버튼 클릭됨');
-            if(saveData()) {
+            if(saveAllWorkInputs()) {
                 const year = document.getElementById('targetYear').value;
                 const month = document.getElementById('targetMonth').value;
                 const key = getStorageKey(year, month);
@@ -1578,12 +1313,10 @@
         initMonthSelect();
         checkLocalStorage(); // 로컬 스토리지 기능 확인
         calculateAll();
-        if (!loadData()) {
+        if (!loadAllWorkInputs()) {
             console.log('저장된 데이터가 없어 테이블을 새로 생성합니다.');
             updateTable();
         }
-        setupWorkDaysListener(); // workDays 이벤트 리스너 설정 추가
-        autoCalculateRemainingDays(); // 페이지 로드 시 자동으로 남은 근무일수 계산
         updateRemainingDaysMax(); // 남은 근무일수 최대값 초기화
     </script>
 </body>
