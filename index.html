@@ -238,13 +238,27 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .hero-note { margin-top: 12px; font-size: 12.5px; color: rgba(255,255,255,.55); }
 
 /* Stats */
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
-.stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); min-width: 0; }
-.stat-k { font-size: 12px; color: var(--sub); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 18px; }
+.stat { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.stat-k { font-size: 12px; color: rgba(255,255,255,.6); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat-v { font-size: 17px; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; }
-.stat-s { font-size: 11.5px; color: var(--faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-s { font-size: 11.5px; color: rgba(255,255,255,.45); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 600px) { .stats { grid-template-columns: repeat(2, 1fr); } }
 
+/* 오늘 퇴근 계산 카드 */
+.today-card { background: var(--accent-soft); border-color: rgba(255,106,13,.28); }
+.today-card .card-title { color: var(--accent-ink); }
+.today-card .tp { background: var(--card); border-color: rgba(255,106,13,.2); }
+.today-card .out-row { background: var(--card); }
+.today-card .out-row.main { background: var(--card); border: 1px solid rgba(255,106,13,.35); }
+.today-card .out-row.main.done { background: #e7f8ee; border-color: rgba(18,161,80,.35); }
+.today-card .out-note { color: var(--sub); }
+.today-card .today-empty { color: var(--ink); }
+@media (prefers-color-scheme: dark) {
+  .today-card { background: #2a1a0e; border-color: rgba(255,106,13,.3); }
+  .today-card .card-title { color: var(--accent); }
+  .today-card .out-row.main.done { background: #10301f; }
+}
 /* Notice */
 .notice { display: flex; gap: 8px; align-items: flex-start; background: var(--accent-soft); color: var(--ink); border-radius: 12px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
 .notice[hidden] { display: none; }
@@ -394,18 +408,18 @@ details.card[open] > summary::after { content: '－'; }
       <div class="bar-meta"><span>누적 <b id="barDone">-</b></span><span>필수 <b id="barTarget">-</b></span></div>
     </div>
     <div class="hero-note" id="heroNote"></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-k">월 필수 근무시간</div><div class="stat-v" id="sTarget">-</div><div class="stat-s" id="sTargetS">-</div></div>
+      <div class="stat"><div class="stat-k">남은 필요 시간</div><div class="stat-v" id="sRemain">-</div><div class="stat-s" id="sRemainS">-</div></div>
+      <div class="stat"><div class="stat-k">근무일</div><div class="stat-v" id="sDays">-</div><div class="stat-s" id="sDaysS">-</div></div>
+      <div class="stat"><div class="stat-k">매일 8시간 기준 대비</div><div class="stat-v" id="sExtra">-</div><div class="stat-s">이달 전체 기준</div></div>
+    </div>
   </section>
 
-  <div class="stats">
-    <div class="stat"><div class="stat-k">월 필수 근무시간</div><div class="stat-v" id="sTarget">-</div><div class="stat-s" id="sTargetS">-</div></div>
-    <div class="stat"><div class="stat-k">남은 필요 시간</div><div class="stat-v" id="sRemain">-</div><div class="stat-s" id="sRemainS">-</div></div>
-    <div class="stat"><div class="stat-k">근무일</div><div class="stat-v" id="sDays">-</div><div class="stat-s" id="sDaysS">-</div></div>
-    <div class="stat"><div class="stat-k">매일 8시간 기준 대비</div><div class="stat-v" id="sExtra">-</div><div class="stat-s">이달 전체 기준</div></div>
-  </div>
 
   <div class="notice" id="missingNotice" hidden></div>
 
-  <section class="card" id="todayCard">
+  <section class="card today-card" id="todayCard">
     <div class="card-title"><span>오늘 퇴근 계산</span><span id="todayDate"></span></div>
     <div id="todayBody"></div>
   </section>
