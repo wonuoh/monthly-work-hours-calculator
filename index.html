@@ -315,7 +315,8 @@ details.card[open] > summary::after { content: '－'; }
 .help { font-size: 13px; color: var(--sub); line-height: 1.65; margin: 0; padding-left: 18px; }
 .help li + li { margin-top: 4px; }
 .ver { font-size: 11px; color: var(--faint); margin-top: 18px; text-align: center; }
-.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: #18181a; color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14px; opacity: 0; pointer-events: none; transition: .25s; z-index: 10; white-space: nowrap; }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: #18181a; color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14px; opacity: 0; pointer-events: none; transition: .25s; z-index: 95; max-width: calc(100% - 32px); width: max-content; text-align: center; box-shadow: 0 8px 28px rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.18); }
+.egg-demo .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
@@ -1629,6 +1630,7 @@ if (/[?&]egg\b/.test(location.search)) {
   box.innerHTML = '<div style="width:100%;text-align:center;font-size:12px;color:var(--sub);font-weight:600">이스터에그 체험 모드</div>';
   demos.forEach(([label, fn]) => { const b = document.createElement('button'); b.className = 'btn'; b.style.height = '36px'; b.textContent = label; b.addEventListener('click', fn); box.appendChild(b); });
   document.body.appendChild(box);
+  document.body.classList.add('egg-demo');
 }
 
 // 5) 퇴근 가능 시각이 되면 알림 (페이지를 열어둔 경우)
