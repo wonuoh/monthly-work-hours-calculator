@@ -110,6 +110,30 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .intro ol { margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--sub); line-height: 1.7; }
 .intro .x { position: absolute; top: 10px; right: 10px; }
 .intro-open { border: 0; background: transparent; color: var(--sub); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 0; }
+/* 시각 선택 */
+.tp { width: 100%; height: 44px; border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 0 12px; font-size: 16px; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; }
+.tp::after { content: '🕘'; font-size: 14px; opacity: .55; }
+.tp.empty { color: var(--faint); font-weight: 500; }
+.tp:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+.tp-bg { position: fixed; inset: 0; z-index: 59; }
+.tp-bg[hidden], .tp-pop[hidden] { display: none; }
+.tp-pop { position: absolute; z-index: 60; width: 300px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.18); padding: 14px; }
+.tp-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.tp-clear { border: 0; background: transparent; color: var(--faint); font-size: 12px; text-decoration: underline; padding: 0 0 0 4px; }
+.tp-title { font-size: 13px; color: var(--sub); font-weight: 600; }
+.tp-val { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.tp-lab { font-size: 12px; color: var(--faint); margin: 10px 0 6px; }
+.tp-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.tp-grid button, .tp-ampm button, .tp-foot button { height: 36px; border: 0; border-radius: 9px; background: var(--soft); font-weight: 600; font-size: 14px; }
+.tp-grid button.on, .tp-ampm button.on { background: var(--accent); color: #fff; }
+.tp-ampm { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tp-foot { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr; gap: 6px; margin-top: 12px; }
+.tp-foot .done { background: var(--ink); color: var(--card); }
+@media (max-width: 520px) {
+  .tp-pop { position: fixed; left: 0 !important; right: 0; bottom: 0; top: auto !important; width: auto; border-radius: 20px 20px 0 0; padding-bottom: calc(16px + env(safe-area-inset-bottom)); animation: up .2s ease; }
+  .tp-bg { background: rgba(0,0,0,.25); }
+  .tp-grid button, .tp-ampm button, .tp-foot button { height: 42px; }
+}
 /* 근무시간 입력판 */
 .pick-btn { width: 30px; height: 30px; border: 0; background: transparent; color: var(--faint); border-radius: 8px; font-size: 15px; display: grid; place-items: center; }
 .pick-btn:hover { background: var(--soft); color: var(--ink); }
@@ -194,9 +218,9 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .today-empty { font-size: 14px; color: var(--sub); }
 
 /* Day list */
-.list-head { display: grid; grid-template-columns: 60px 1fr 88px 112px; gap: 8px; padding: 0 4px 8px; font-size: 12px; color: var(--faint); border-bottom: 1px solid var(--line); }
+.list-head { display: grid; grid-template-columns: 60px 1fr 104px 112px; gap: 8px; padding: 0 4px 8px; font-size: 12px; color: var(--faint); border-bottom: 1px solid var(--line); }
 .list-head span:nth-child(3), .list-head span:nth-child(4) { text-align: right; }
-.row { display: grid; grid-template-columns: 60px 1fr 88px 112px; gap: 8px; align-items: center; padding: 8px 4px; border-bottom: 1px solid var(--line); min-height: 52px; }
+.row { display: grid; grid-template-columns: 60px 1fr 104px 112px; gap: 8px; align-items: center; padding: 8px 4px; border-bottom: 1px solid var(--line); min-height: 52px; }
 .row:last-child { border-bottom: 0; }
 .row.is-today { background: var(--accent-soft); border-radius: 10px; border-bottom-color: transparent; }
 .row.rest { min-height: 40px; padding-top: 5px; padding-bottom: 5px; }
@@ -223,7 +247,7 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .pos { color: var(--pos); }
 .neg { color: var(--neg); }
 .zero, .dim { color: var(--faint); }
-.list-foot { display: grid; grid-template-columns: 60px 1fr 88px 112px; gap: 8px; padding: 12px 4px 0; border-top: 1px solid var(--line); margin-top: 4px; font-weight: 700; font-size: 14px; }
+.list-foot { display: grid; grid-template-columns: 60px 1fr 104px 112px; gap: 8px; padding: 12px 4px 0; border-top: 1px solid var(--line); margin-top: 4px; font-weight: 700; font-size: 14px; }
 .list-foot span:nth-child(3), .list-foot span:nth-child(4) { text-align: right; }
 .legend { font-size: 12px; color: var(--faint); margin-top: 10px; }
 @media (max-width: 520px) {
@@ -382,7 +406,7 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.3.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.3.1 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 <div class="sheet-bg" id="sheetBg" hidden></div>
@@ -398,13 +422,23 @@ details.card[open] > summary::after { content: '－'; }
   </div>
   <div id="shClock" hidden>
     <div class="today-grid">
-      <div class="field"><label for="shStart">출근</label><input type="time" id="shStart"></div>
-      <div class="field"><label for="shEnd">퇴근</label><input type="time" id="shEnd"></div>
+      <div class="field"><label for="shStart">출근</label><button type="button" class="tp" id="shStart" data-label="출근 시각" data-default="09:00"></button></div>
+      <div class="field"><label for="shEnd">퇴근</label><button type="button" class="tp" id="shEnd" data-label="퇴근 시각" data-default="18:00"></button></div>
     </div>
     <div class="sh-big" id="shClockVal" style="margin-top:14px">-</div>
     <div class="sh-sub" id="shClockSub"></div>
   </div>
   <div class="sh-actions"><button class="btn ghost" id="shClear">지우기</button><button class="btn primary" id="shSave">저장</button></div>
+</div>
+<div class="tp-bg" id="tpBg" hidden></div>
+<div class="tp-pop" id="tpPop" role="dialog" aria-label="시각 선택" hidden>
+  <div class="tp-head"><span><span class="tp-title" id="tpTitle">-</span> <button class="tp-clear" data-act="clear">지우기</button></span><span class="tp-val" id="tpVal">-</span></div>
+  <div class="tp-ampm" id="tpAmpm"><button data-ap="am">오전</button><button data-ap="pm">오후</button></div>
+  <div class="tp-lab">시</div>
+  <div class="tp-grid" id="tpHours"></div>
+  <div class="tp-lab">분</div>
+  <div class="tp-grid" id="tpMins"></div>
+  <div class="tp-foot"><button data-act="-1">-1분</button><button data-act="+1">+1분</button><button data-act="now">지금</button><button data-act="done" class="done">완료</button></div>
 </div>
 <div class="sticky" id="sticky" aria-hidden="true">
   <div class="sticky-in">
@@ -984,11 +1018,12 @@ function renderToday() {
   if (!body.querySelector('#tStart')) {
     body.innerHTML = `
       <div class="today-grid">
-        <div class="field"><label for="tStart">출근 시각</label><input type="time" id="tStart"></div>
-        <div class="field"><label for="tEnd">퇴근 시각 (선택)</label><input type="time" id="tEnd"></div>
+        <div class="field"><label for="tStart">출근 시각</label><button type="button" class="tp" id="tStart" data-label="출근 시각" data-default="09:00"></button></div>
+        <div class="field"><label for="tEnd">퇴근 시각 (선택)</label><button type="button" class="tp" id="tEnd" data-label="퇴근 시각" data-default="18:00"></button></div>
       </div>
       <div class="today-out" id="tOut"></div>`;
     const saved = settings.today && settings.today.date === `${t.y}-${pad(t.m)}-${pad(t.d)}` ? settings.today : null;
+    initTP($('tStart')); initTP($('tEnd'));
     $('tStart').value = saved ? saved.start || '' : '';
     $('tEnd').value = saved ? saved.end || '' : '';
     const onChange = () => {
@@ -1343,7 +1378,77 @@ function bindSheet() {
   $('shClear').addEventListener('click', () => applySheet(null));
 }
 
+/* ---------- 시각 선택 ---------- */
+const tp = { el: null, min: 540 };
+function initTP(el) {
+  if (el._tp) return;
+  el._tp = true;
+  let v = '';
+  const draw = () => {
+    const m = parseClock(v);
+    el.textContent = m === null ? '선택' : fmtTimeOfDay(m);
+    el.classList.toggle('empty', m === null);
+  };
+  Object.defineProperty(el, 'value', { get() { return v; }, set(x) { v = x || ''; draw(); }, configurable: true });
+  draw();
+  el.addEventListener('click', (ev) => { ev.stopPropagation(); openTP(el); });
+}
+function tpDraw() {
+  const h24 = Math.floor(tp.min / 60), mm = tp.min % 60;
+  const pm = h24 >= 12;
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  $('tpVal').textContent = fmtTimeOfDay(tp.min);
+  [...$('tpAmpm').children].forEach((b) => b.classList.toggle('on', (b.dataset.ap === 'pm') === pm));
+  $('tpHours').innerHTML = Array.from({ length: 12 }, (_, i) => { const h = i + 1; return `<button data-h="${h}" class="${h === h12 ? 'on' : ''}">${h}</button>`; }).join('');
+  $('tpMins').innerHTML = Array.from({ length: 12 }, (_, i) => { const m = i * 5; return `<button data-mm="${m}" class="${m === mm ? 'on' : ''}">${pad(m)}</button>`; }).join('');
+}
+function tpCommit() {
+  tp.min = ((tp.min % 1440) + 1440) % 1440;
+  tp.el.value = `${pad(Math.floor(tp.min / 60))}:${pad(tp.min % 60)}`;
+  tp.el.dispatchEvent(new Event('input', { bubbles: true }));
+  tpDraw();
+}
+function openTP(el) {
+  tp.el = el;
+  const cur = parseClock(el.value);
+  tp.min = cur !== null ? cur : parseClock(el.dataset.default || '09:00');
+  $('tpTitle').textContent = el.dataset.label || '시각 선택';
+  tpDraw();
+  const pop = $('tpPop');
+  pop.hidden = false; $('tpBg').hidden = false;
+  if (window.innerWidth > 520) {
+    const r = el.getBoundingClientRect();
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    let left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
+    let top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    pop.style.position = 'fixed';
+    pop.style.left = `${left}px`; pop.style.top = `${top}px`;
+  } else { pop.style.position = ''; pop.style.left = ''; pop.style.top = ''; }
+  if (cur === null) tpCommit();
+}
+function closeTP() { $('tpPop').hidden = true; $('tpBg').hidden = true; if (tp.el) tp.el.focus(); tp.el = null; }
+function bindTP() {
+  $('tpBg').addEventListener('click', closeTP);
+  $('tpPop').addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    const b = ev.target.closest('button'); if (!b) return;
+    const h24 = Math.floor(tp.min / 60), mm = tp.min % 60;
+    if (b.dataset.ap) { const pm = h24 >= 12; if ((b.dataset.ap === 'pm') !== pm) tp.min += pm ? -720 : 720; tpCommit(); }
+    else if (b.dataset.h) { const pm = h24 >= 12; const h = +b.dataset.h % 12 + (pm ? 12 : 0); tp.min = h * 60 + mm; tpCommit(); }
+    else if (b.dataset.mm !== undefined) { tp.min = h24 * 60 + +b.dataset.mm; tpCommit(); }
+    else if (b.dataset.act === '-1') { tp.min -= 1; tpCommit(); }
+    else if (b.dataset.act === '+1') { tp.min += 1; tpCommit(); }
+    else if (b.dataset.act === 'now') { const n = new Date(); tp.min = n.getHours() * 60 + n.getMinutes(); tpCommit(); }
+    else if (b.dataset.act === 'done') closeTP();
+    else if (b.dataset.act === 'clear') { tp.el.value = ''; tp.el.dispatchEvent(new Event('input', { bubbles: true })); closeTP(); }
+  });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('tpPop').hidden) { ev.stopImmediatePropagation(); closeTP(); } }, true);
+  initTP($('shStart')); initTP($('shEnd'));
+}
+
 bind();
+bindTP();
 bindSheet();
 setView(view.y, view.m);
 loadRemoteHolidays();
