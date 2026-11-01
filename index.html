@@ -231,7 +231,7 @@ details.card[open] > summary::after { content: '－'; }
     <div class="stat"><div class="stat-k">월 필수 근무시간</div><div class="stat-v" id="sTarget">-</div><div class="stat-s" id="sTargetS">-</div></div>
     <div class="stat"><div class="stat-k">남은 필요 시간</div><div class="stat-v" id="sRemain">-</div><div class="stat-s" id="sRemainS">-</div></div>
     <div class="stat"><div class="stat-k">근무일</div><div class="stat-v" id="sDays">-</div><div class="stat-s" id="sDaysS">-</div></div>
-    <div class="stat"><div class="stat-k">이달 초과근무 필요</div><div class="stat-v" id="sExtra">-</div><div class="stat-s">매일 8시간 외 추가 총량</div></div>
+    <div class="stat"><div class="stat-k">매일 8시간 기준 대비</div><div class="stat-v" id="sExtra">-</div><div class="stat-s">이달 전체 기준</div></div>
   </div>
 
   <div class="notice" id="missingNotice" hidden></div>
@@ -243,10 +243,10 @@ details.card[open] > summary::after { content: '－'; }
 
   <section class="card">
     <div class="card-title"><span>일별 근무 기록</span><span style="font-weight:500;color:var(--faint)">예: 830 → 8:30</span></div>
-    <div class="list-head"><span>날짜</span><span>근무시간 · 휴가</span><span>당일 초과/부족</span><span>남은 초과근무</span></div>
+    <div class="list-head"><span>날짜</span><span>근무시간 · 휴가</span><span>당일 초과/부족</span><span>이달 남은 조정</span></div>
     <div id="dayList"></div>
     <div class="list-foot"><span>합계</span><span id="fActual">-</span><span id="fDiff">-</span><span></span></div>
-    <div class="legend">당일 초과/부족: 그날 근무시간 - 8시간<br>남은 초과근무: 그날까지 기록 기준, 이달 필수 근무시간을 채우려면 8시간 외에 더 해야 하는 시간의 합계</div>
+    <div class="legend">당일 초과/부족: 그날 근무시간 - 8시간<br>이달 남은 조정: 그날까지의 기록 기준, 남은 근무일을 매일 8시간씩 일한다고 할 때 이달 필수 근무시간까지 더 해야 하는 시간(더 근무) 또는 덜 해도 되는 시간(덜 근무 가능)의 합계</div>
   </section>
 
   <details class="card" id="settingsCard">
@@ -290,7 +290,7 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.0.1 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.0.2 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -706,7 +706,7 @@ function refresh() {
       row._diff.textContent = x.diff === 0 ? '±0' : x.diff > 0 ? `${fmtShort(x.diff, false)} 초과` : `${fmtShort(-x.diff, false)} 부족`;
       row._diff.className = 'd-diff ' + (x.diff > 0 ? 'pos' : x.diff < 0 ? 'neg' : 'zero') + (x.assumed ? ' dim' : '');
       const o = x.owe;
-      row._bal.textContent = o > 0 ? `${fmtShort(o, false)} 더 필요` : o < 0 ? `${fmtShort(-o, false)} 초과 달성` : '충족';
+      row._bal.textContent = o > 0 ? `${fmtShort(o, false)} 더 근무` : o < 0 ? `${fmtShort(-o, false)} 덜 근무 가능` : '딱 맞음';
       row._bal.className = 'd-bal ' + (o > 0 ? 'neg' : o < 0 ? 'pos' : 'zero');
     } else {
       row._diff.textContent = (x.type === 'work') ? (x.plannedCredit ? `+${fmtShort(x.plannedCredit, false)} 휴가` : '') : '';
@@ -750,7 +750,7 @@ function refresh() {
   $('sRemainS').textContent = c.need < 0 ? `${fmtHM(-c.need)} 초과 달성` : `${Math.max(0, c.need).toLocaleString()}분`;
   $('sDays').textContent = `${c.workDays}일`;
   $('sDaysS').textContent = c.rel === 0 ? `남은 ${c.remaining}일` : (c.rel < 0 ? '지난 달' : '예정');
-  $('sExtra').textContent = c.monthlyExtra >= 0 ? fmtHM(c.monthlyExtra) : `${fmtHM(-c.monthlyExtra)} 덜 근무`;
+  $('sExtra').textContent = c.monthlyExtra >= 0 ? `${fmtHM(c.monthlyExtra)} 더` : `${fmtHM(-c.monthlyExtra)} 덜`;
 
   // 미입력 안내
   const notice = $('missingNotice');
@@ -853,9 +853,14 @@ function updateTodayOut() {
     html += '<div class="out-note">출근 시각을 입력하면 퇴근 가능 시각을 알려드립니다</div>';
   } else {
     const leaveAt = start + needWork + breakFor(needWork);
-    html += `<div class="out-row main"><span class="out-k">이번 달 기준 퇴근 가능</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`;
-    if (!leave) html += `<div class="out-row"><span class="out-k">8시간 근무 시 퇴근</span><span class="out-v" style="font-size:16px">${fmtTimeOfDay(start + BASE + lunch)}</span></div>`;
-    html += `<div class="out-note">필요 근무 ${fmtHM(needWork)}${needWork > 240 && lunch ? ` + 휴게 ${lunch}분` : ''}${leave ? ` · ${LEAVE[leave].label} ${LEAVE[leave].credit / 60}시간 별도 인정` : ''}</div>`;
+    const lunchUsed = needWork > 240 ? lunch : 0;
+    html += `<div class="out-row main"><span class="out-k">오늘 퇴근 가능 시각</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`;
+    html += `<div class="out-note">출근 ${fmtTimeOfDay(start)} + 근무 ${fmtHM(needWork)}${lunchUsed ? ` + 점심 ${fmtHM(lunchUsed)}` : ''} = ${fmtTimeOfDay(leaveAt)}${leave ? ` · ${LEAVE[leave].label} ${LEAVE[leave].credit / 60}시간은 별도 인정` : ''}</div>`;
+    if (!leave && needWork !== BASE) {
+      const at8 = start + BASE + lunch;
+      const d = BASE - needWork;
+      html += `<div class="out-note">참고: 정확히 8시간만 근무하면 ${fmtTimeOfDay(at8)} 퇴근 · 이 경우 남은 근무일에 ${fmtHM(Math.abs(d))} ${d < 0 ? '더 나눠서 채워야 함' : '여유가 더 생김'}</div>`;
+    }
     if (end !== null) {
       let span = end - start;
       if (span < 0) span += 1440;
