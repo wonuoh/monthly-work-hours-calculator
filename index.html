@@ -312,7 +312,7 @@ details.card[open] > summary::after { content: '－'; }
     <div class="list-head"><span>날짜</span><span>근무시간 · 휴가</span><span><span class="pc-only">당일 초과/부족</span><span class="mo-only">당일 · 이달 조정</span></span><span>이달 남은 조정</span></div>
     <div id="dayList"></div>
     <div class="list-foot"><span>합계</span><span id="fActual">-</span><span id="fDiff">-</span><span></span></div>
-    <div class="legend">당일 초과/부족: 그날 근무시간 - 8시간<br>이달 남은 조정: 그날까지의 기록 기준, 남은 근무일을 매일 8시간씩 일한다고 할 때 이달 필수 근무시간까지 더 해야 하는 시간(더 근무) 또는 덜 해도 되는 시간(덜 근무 가능)의 합계</div>
+    <div class="legend">당일 초과/부족: 그날 근무시간 - 8시간<br>이달 남은 조정: 그날까지의 기록 기준, 남은 근무일을 매일 8시간씩 일한다고 할 때 이달 필수 근무시간까지 더 해야 하는 시간(더 근무 필요) 또는 덜 해도 되는 시간(덜 근무 가능)의 합계</div>
   </section>
 
   <details class="card" id="settingsCard">
@@ -356,7 +356,7 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.2.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.2.1 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 <div class="sticky" id="sticky" aria-hidden="true">
@@ -789,7 +789,7 @@ function refresh() {
       row._diff.textContent = x.diff === 0 ? '±0' : x.diff > 0 ? `${fmtShort(x.diff, false)} 초과` : `${fmtShort(-x.diff, false)} 부족`;
       row._diff.className = 'd-diff ' + (x.diff > 0 ? 'pos' : x.diff < 0 ? 'neg' : 'zero') + (x.assumed ? ' dim' : '');
       const o = x.owe;
-      row._bal.textContent = o > 0 ? `${fmtShort(o, false)} 더 근무` : o < 0 ? `${fmtShort(-o, false)} 덜 근무 가능` : '딱 맞음';
+      row._bal.textContent = o > 0 ? `${fmtShort(o, false)} 더 근무 필요` : o < 0 ? `${fmtShort(-o, false)} 덜 근무 가능` : '충족';
       row._bal.className = 'd-bal ' + (o > 0 ? 'neg' : o < 0 ? 'pos' : 'zero');
     } else {
       row._diff.textContent = (x.type === 'work') ? (x.plannedCredit ? `+${fmtShort(x.plannedCredit, false)} 휴가` : '') : '';
