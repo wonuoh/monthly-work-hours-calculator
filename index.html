@@ -1004,8 +1004,8 @@ function refresh() {
     const shown = Math.max(c.dailyNeed, Math.min(coreMin, BASE));
     hv.innerHTML = hmHTML(Math.max(0, shown));
     const gap = shown - BASE;
-    if (gap > 0) hs.innerHTML = `<span class="pill more">매일 8시간 + ${fmtHM(gap)} 더 근무 필요</span>`;
-    else if (gap < 0) hs.innerHTML = `<span class="pill less">매일 8시간보다 ${fmtHM(-gap)} 일찍 퇴근 가능</span>`;
+    if (gap > 0) hs.innerHTML = `<span class="pill more">매일 8시간보다 ${fmtHM(gap)} 더 근무 필요</span>`;
+    else if (gap < 0) hs.innerHTML = `<span class="pill less">매일 8시간보다 ${fmtHM(-gap)} 덜 근무 가능</span>`;
     else hs.innerHTML = '<span class="pill even">매일 8시간씩 근무하면 충족</span>';
     if (shown > c.dailyNeed) hs.innerHTML += ` <span style="font-size:12.5px;opacity:.7">코어타임 ${settings.coreHours}시간 기준 (필수 시간만으로는 하루 ${fmtHM(Math.max(0, c.dailyNeed))})</span>`;
   } else {
@@ -1190,7 +1190,7 @@ function updateTodayOut() {
     if (!leave && needWork !== BASE) {
       const at8 = start + BASE + lunch;
       const d = BASE - needWork;
-      html += `<div class="out-note">참고: 정확히 8시간만 근무하면 ${fmtTimeOfDay(at8)} 퇴근 · 이 경우 남은 근무일에 ${fmtHM(Math.abs(d))} ${d < 0 ? '더 나눠서 채워야 함' : '여유가 더 생김'}</div>`;
+      html += `<div class="out-note">참고: 정확히 8시간만 근무하면 ${fmtTimeOfDay(at8)} 퇴근 · 이 경우 남은 근무일에 ${fmtHM(Math.abs(d))} ${d < 0 ? '더 근무 필요' : '덜 근무 가능'}</div>`;
     }
     if (end !== null) {
       const worked = workedFromClock(start, end, mid).worked;
