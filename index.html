@@ -113,6 +113,25 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .intro ol { margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--sub); line-height: 1.7; }
 .intro .x { position: absolute; top: 10px; right: 10px; }
 .intro-open { border: 0; background: transparent; color: var(--sub); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 0; }
+/* 이스터에그 */
+#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 90; }
+.egg-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 80; display: grid; place-items: center; padding: 16px; }
+.egg-bg[hidden] { display: none; }
+.egg { background: var(--card); border-radius: 20px; padding: 22px 20px 18px; width: min(380px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.3); animation: pop .25s ease; }
+.egg h3 { margin: 0 0 4px; font-size: 18px; }
+.egg .egg-sub { font-size: 13px; color: var(--sub); margin-bottom: 14px; }
+.egg ul { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
+.egg li { display: flex; align-items: center; gap: 10px; background: var(--soft); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.egg li .em { font-size: 22px; }
+.egg li b { color: var(--accent-ink); }
+.egg .btn { width: 100%; }
+.leave-now { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; pointer-events: none; }
+.leave-now span { font-size: clamp(56px, 18vw, 140px); font-weight: 900; color: var(--accent); letter-spacing: -.04em; animation: run 2.2s ease forwards; text-shadow: 0 6px 30px rgba(255,106,13,.35); white-space: nowrap; }
+.out-row.main.done { background: #e7f8ee; }
+.out-row.main.done .out-v { color: var(--pos); }
+@media (prefers-color-scheme: dark) { .out-row.main.done { background: #10301f; } }
+@keyframes pop { from { transform: scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes run { 0% { transform: scale(.3); opacity: 0; } 20% { transform: scale(1.05); opacity: 1; } 70% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(120vw); opacity: 0; } }
 /* 시각 선택 */
 .tp { width: 100%; height: 44px; border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 0 12px; font-size: 16px; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; }
 .tp::after { content: '🕘'; font-size: 14px; opacity: .55; }
@@ -304,7 +323,7 @@ details.card[open] > summary::after { content: '－'; }
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="brand">⏱️ 월 근무시간 계산기</div>
+    <div class="brand"><span id="logo" style="cursor:default;user-select:none">⏱️</span> 월 근무시간 계산기</div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div class="month-nav">
         <button class="icon-btn" id="prevMonth" aria-label="이전 달">‹</button>
@@ -416,7 +435,7 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.4.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.5.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 <div class="sheet-bg" id="sheetBg" hidden></div>
@@ -442,6 +461,8 @@ details.card[open] > summary::after { content: '－'; }
   </div>
   <div class="sh-actions"><button class="btn ghost" id="shClear">지우기</button><button class="btn primary" id="shSave">저장</button></div>
 </div>
+<canvas id="confetti" hidden></canvas>
+<div class="egg-bg" id="eggBg" hidden><div class="egg" role="dialog" aria-labelledby="eggTitle"><h3 id="eggTitle">-</h3><div class="egg-sub" id="eggSub"></div><ul id="eggList"></ul><button class="btn primary" id="eggClose">닫기</button></div></div>
 <div class="tp-bg" id="tpBg" hidden></div>
 <div class="tp-pop" id="tpPop" role="dialog" aria-label="시각 선택" hidden>
   <div class="tp-head"><span><span class="tp-title" id="tpTitle">-</span> <button class="tp-clear" data-act="clear">지우기</button></span><span class="tp-val" id="tpVal">-</span></div>
@@ -468,6 +489,7 @@ details.card[open] > summary::after { content: '－'; }
 /* ---------- 상수 ---------- */
 const BASE = 480;                       // 하루 기준 8시간
 const PREFIX = 'workTimeCalculator';
+const egg = { leaveAt: null };
 const KEY_V2 = (y, m) => `${PREFIX}:v2:${y}-${pad(m)}`;
 const KEY_V1 = (y, m) => `${PREFIX}:month:${y}-${pad(m)}`;
 const KEY_SETTINGS = `${PREFIX}:v2:settings`;
@@ -1089,7 +1111,12 @@ function updateTodayOut() {
     const lunchUsed = breakFor(needWork);
     const leaveAt = start + needWork + lunchUsed + mid;
     todayLeaveText = fmtTimeOfDay(leaveAt);
-    html += `<div class="out-row main"><span class="out-k">오늘 퇴근 가능 시각</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`;
+    const nowD = new Date(); const nowMin = nowD.getHours() * 60 + nowD.getMinutes();
+    const passed = end === null && nowMin >= leaveAt && leaveAt < 1440;
+    html += passed
+      ? `<div class="out-row main done"><span class="out-k">퇴근 가능 시각이 지났습니다 🏃</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`
+      : `<div class="out-row main"><span class="out-k">오늘 퇴근 가능 시각</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`;
+    egg.leaveAt = passed ? null : leaveAt;
     html += `<div class="out-note">출근 ${fmtTimeOfDay(start)} + 근무 ${fmtHM(needWork)}${lunchUsed ? ` + 점심 ${fmtHM(lunchUsed)}` : ''}${mid ? ` + ${LEAVE[leave].label} ${fmtHM(mid)}` : ''} = ${fmtTimeOfDay(leaveAt)}${credit && !mid ? ` · ${LEAVE[leave].label} ${credit / 60}시간은 별도 인정` : ''}</div>`;
     if (!leave && needWork !== BASE) {
       const at8 = start + BASE + lunch;
@@ -1127,6 +1154,7 @@ function commitInput(inp) {
     return;
   }
   setEntry(d, { w: v });
+  eggLongDay(v);
   inp.value = v !== null ? fmtClock(v) : '';
   refresh();
 }
@@ -1390,6 +1418,7 @@ function closeSheet() {
   document.body.style.overflow = '';
 }
 function applySheet(w) {
+  if (w !== null) setTimeout(() => eggLongDay(w), 2100);
   const d = sheet.day;
   const x = compute().days[d - 1];
   const prevLeave = entry(d).leave;
@@ -1505,6 +1534,96 @@ function bindTP() {
 bind();
 bindTP();
 bindSheet();
+
+/* ---------- 이스터에그 ---------- */
+function confetti(ms = 2600) {
+  const cv = $('confetti');
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.hidden = false; cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; ctx.scale(dpr, dpr);
+  const colors = ['#ff6a0d', '#ffb54d', '#12a150', '#4f8cff', '#e5484d', '#ffd400'];
+  const ps = Array.from({ length: 140 }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 120, y: innerHeight * .35, vx: (Math.random() - .5) * 13, vy: -Math.random() * 13 - 4, r: Math.random() * 6 + 4, c: colors[Math.floor(Math.random() * colors.length)], a: Math.random() * Math.PI, va: (Math.random() - .5) * .3 }));
+  const t0 = performance.now();
+  (function frame(t) {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    ps.forEach((p) => { p.vy += .32; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.a += p.va; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ctx.restore(); });
+    if (t - t0 < ms) requestAnimationFrame(frame); else { ctx.clearRect(0, 0, innerWidth, innerHeight); cv.hidden = true; }
+  })(t0);
+}
+function leaveNow(text = '퇴근!') {
+  const el = document.createElement('div');
+  el.className = 'leave-now'; el.innerHTML = `<span>${text}</span>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2300);
+}
+
+// 1) 이번 달 필수 근무시간을 채운 순간 축하 (달마다 한 번)
+let eggPrevNeed = null, eggPrevKey = null;
+const _origRefresh = refresh;
+refresh = function () {
+  _origRefresh();
+  const c = compute();
+  const key = `${view.y}-${view.m}`;
+  if (eggPrevKey === key && eggPrevNeed !== null && eggPrevNeed > 0 && c.need <= 0 && c.missingPast === 0) {
+    const flag = `${PREFIX}:v2:egg:done:${key}`;
+    if (!storage.get(flag)) { storage.set(flag, true); setTimeout(() => { confetti(); toast(`🎉 ${view.m}월 필수 근무시간을 모두 채웠습니다`); }, 200); }
+  }
+  eggPrevKey = key; eggPrevNeed = c.need;
+};
+
+// 2) 하루 12시간 이상 기록 시
+function eggLongDay(w) {
+  if (w >= 720) toast(w >= 900 ? '🌙 이 정도면 회사에 사시는 건 아니죠? 푹 쉬세요' : '☕ 오늘 정말 고생하셨습니다');
+}
+
+// 3) 로고 5번 → 이번 달 근무시간으로 할 수 있었던 일
+let logoTaps = 0, logoTimer = null;
+$('logo').addEventListener('click', () => {
+  logoTaps++; clearTimeout(logoTimer); logoTimer = setTimeout(() => { logoTaps = 0; }, 1500);
+  if (logoTaps < 5) return;
+  logoTaps = 0;
+  const c = compute();
+  const w = c.recordedSum;
+  $('eggTitle').textContent = `${view.m}월에 일한 ${fmtHM(w)}이면`;
+  if (w < 60) {
+    $('eggSub').textContent = '아직 기록이 거의 없습니다. 근무시간을 입력하고 다시 찾아와 주세요';
+    $('eggList').innerHTML = '';
+  } else {
+    const items = [
+      ['🎬', `영화 <b>${Math.floor(w / 120).toLocaleString()}편</b> 정주행`],
+      ['🚄', `서울↔부산 KTX <b>${(w / 330).toFixed(1)}회</b> 왕복`],
+      ['🍜', `컵라면 <b>${Math.floor(w / 4).toLocaleString()}개</b> 익히기`],
+      ['😴', `8시간 숙면 <b>${(w / 480).toFixed(1)}일</b>`],
+      ['🌍', `지구 자전 <b>${(w / 1436).toFixed(2)}바퀴</b> 동안 근무`]
+    ];
+    $('eggSub').textContent = '기록된 근무시간 기준 · 오늘도 수고 많으셨습니다';
+    $('eggList').innerHTML = items.map(([e, t]) => `<li><span class="em">${e}</span><span>${t}</span></li>`).join('');
+  }
+  $('eggBg').hidden = false;
+});
+$('eggClose').addEventListener('click', () => { $('eggBg').hidden = true; });
+$('eggBg').addEventListener('click', (ev) => { if (ev.target === $('eggBg')) $('eggBg').hidden = true; });
+
+// 4) 코나미 코드 (↑↑↓↓←→←→BA) → 퇴근!
+const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+let konamiIdx = 0;
+document.addEventListener('keydown', (ev) => {
+  const k = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+  konamiIdx = k === KONAMI[konamiIdx] ? konamiIdx + 1 : (k === KONAMI[0] ? 1 : 0);
+  if (konamiIdx === KONAMI.length) { konamiIdx = 0; leaveNow('퇴근!'); confetti(1800); }
+}, true);
+
+// 5) 퇴근 가능 시각이 되면 알림 (페이지를 열어둔 경우)
+setInterval(() => {
+  if (egg.leaveAt === null) return;
+  const n = new Date(); const nowMin = n.getHours() * 60 + n.getMinutes();
+  if (nowMin >= egg.leaveAt) {
+    egg.leaveAt = null;
+    leaveNow('퇴근 시간!'); confetti(2000);
+    updateTodayOut();
+  }
+}, 20000);
 setView(view.y, view.m);
 loadRemoteHolidays();
 
