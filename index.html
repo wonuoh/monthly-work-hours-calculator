@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>월 근무시간 계산기</title>
-<meta name="description" content="한 달 필수 근무시간, 남은 근무일 하루 평균, 오늘 퇴근 가능 시각을 계산하는 월 근무시간 계산기">
+<meta name="description" content="한 달 필수 근무시간, 남은 근무일 하루 평균, 오늘 권장 퇴근 시각을 계산하는 월 근무시간 계산기">
 <meta name="theme-color" content="#FF6A0D">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -272,6 +272,7 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .out-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--soft); }
 .out-row.main { background: var(--accent-soft); }
 .out-k { font-size: 13px; color: var(--sub); }
+.out-hint { display: block; font-size: 11.5px; color: var(--faint); margin-top: 1px; }
 .out-v { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
 .out-row.main .out-v { color: var(--accent-ink); }
 @media (prefers-color-scheme: dark) { .out-row.main .out-v { color: var(--accent); } }
@@ -1083,7 +1084,7 @@ function updateSticky(c) {
   else avg = fmtHM(c.known - c.target, { plus: true });
   $('stAvgK').textContent = c.remaining > 0 ? `하루 평균 (${c.remaining}일 남음)` : '최종 결과';
   let k2, v2;
-  if (todayLeaveText) { k2 = '오늘 퇴근 가능'; v2 = todayLeaveText; }
+  if (todayLeaveText) { k2 = '오늘 권장 퇴근'; v2 = todayLeaveText; }
   else { k2 = '남은 필요 시간'; v2 = fmtHM(Math.max(0, c.need)); }
   $('stSecondK').textContent = k2;
   [['stAvg', avg], ['stSecond', v2]].forEach(([id, html]) => {
@@ -1175,7 +1176,7 @@ function updateTodayOut() {
   todayLeaveText = null;
   if (start === null) {
     html += `<div class="out-row main"><span class="out-k">오늘 필요한 근무</span><span class="out-v">${fmtHM(needWork)}</span></div>`;
-    html += '<div class="out-note">출근 시각을 입력하면 퇴근 가능 시각을 알려드립니다</div>';
+    html += '<div class="out-note">출근 시각을 입력하면 권장 퇴근 시각을 알려드립니다</div>';
   } else {
     const lunchUsed = breakFor(needWork);
     const leaveAt = start + needWork + lunchUsed + mid;
@@ -1183,8 +1184,8 @@ function updateTodayOut() {
     const nowD = new Date(); const nowMin = nowD.getHours() * 60 + nowD.getMinutes();
     const passed = end === null && nowMin >= leaveAt && leaveAt < 1440;
     html += passed
-      ? `<div class="out-row main done"><span class="out-k">퇴근 가능 시각이 지났습니다 🏃</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`
-      : `<div class="out-row main"><span class="out-k">오늘 퇴근 가능 시각</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`;
+      ? `<div class="out-row main done"><span class="out-k">권장 퇴근 시각이 지났습니다 🏃</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`
+      : `<div class="out-row main"><span class="out-k">권장 퇴근 시각<span class="out-hint">이 시각까지 일하면 이달 하루 평균 충족</span></span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`;
     egg.leaveAt = passed ? null : leaveAt;
     html += `<div class="out-note">출근 ${fmtTimeOfDay(start)} + 근무 ${fmtHM(needWork)}${lunchUsed ? ` + 점심 ${fmtHM(lunchUsed)}` : ''}${mid ? ` + ${LEAVE[leave].label} ${fmtHM(mid)}` : ''} = ${fmtTimeOfDay(leaveAt)}${credit && !mid ? ` · ${LEAVE[leave].label} ${credit / 60}시간은 별도 인정` : ''}</div>`;
     if (!leave && needWork !== BASE) {
@@ -1747,7 +1748,7 @@ if (/[?&]egg\b/.test(location.search)) {
   document.body.classList.add('egg-demo');
 }
 
-// 5) 퇴근 가능 시각이 되면 알림 (페이지를 열어둔 경우)
+// 5) 권장 퇴근 시각이 되면 알림 (페이지를 열어둔 경우)
 setInterval(() => {
   if (egg.leaveAt === null) return;
   const n = new Date(); const nowMin = n.getHours() * 60 + n.getMinutes();
