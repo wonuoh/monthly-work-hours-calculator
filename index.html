@@ -156,6 +156,8 @@ button { cursor: pointer; }
 @media (prefers-color-scheme: dark) { .leave.on { color: var(--accent); } }
 .tag { font-size: 13px; font-weight: 600; color: var(--hol); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .tag.muted { color: var(--faint); font-weight: 500; }
+.d-res { display: contents; }
+.mo-only { display: none; }
 .d-diff, .d-bal { text-align: right; font-size: 13.5px; font-weight: 600; white-space: nowrap; }
 .d-bal { font-size: 12.5px; font-weight: 500; }
 .pos { color: var(--pos); }
@@ -165,8 +167,12 @@ button { cursor: pointer; }
 .list-foot span:nth-child(3), .list-foot span:nth-child(4) { text-align: right; }
 .legend { font-size: 12px; color: var(--faint); margin-top: 10px; }
 @media (max-width: 520px) {
-  .list-head, .row, .list-foot { grid-template-columns: 46px 1fr 74px; }
-  .list-head span:nth-child(4), .d-bal, .list-foot span:nth-child(4) { display: none; }
+  .list-head, .row, .list-foot { grid-template-columns: 46px 1fr 96px; }
+  .list-head span:nth-child(4), .list-foot span:nth-child(4) { display: none; }
+  .d-res { display: block; }
+  .mo-only { display: inline; }
+  .pc-only { display: none; }
+  .d-bal { font-size: 11.5px; margin-top: 1px; }
   .t-input { width: 66px; }
   .leave { padding-right: 22px; background-position: right 7px center; }
   .card { padding: 16px 14px; }
@@ -243,7 +249,7 @@ details.card[open] > summary::after { content: '－'; }
 
   <section class="card">
     <div class="card-title"><span>일별 근무 기록</span><span style="font-weight:500;color:var(--faint)">예: 830 → 8:30</span></div>
-    <div class="list-head"><span>날짜</span><span>근무시간 · 휴가</span><span>당일 초과/부족</span><span>이달 남은 조정</span></div>
+    <div class="list-head"><span>날짜</span><span>근무시간 · 휴가</span><span><span class="pc-only">당일 초과/부족</span><span class="mo-only">당일 · 이달 조정</span></span><span>이달 남은 조정</span></div>
     <div id="dayList"></div>
     <div class="list-foot"><span>합계</span><span id="fActual">-</span><span id="fDiff">-</span><span></span></div>
     <div class="legend">당일 초과/부족: 그날 근무시간 - 8시간<br>이달 남은 조정: 그날까지의 기록 기준, 남은 근무일을 매일 8시간씩 일한다고 할 때 이달 필수 근무시간까지 더 해야 하는 시간(더 근무) 또는 덜 해도 되는 시간(덜 근무 가능)의 합계</div>
@@ -290,7 +296,7 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.0.2 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.1.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -535,6 +541,8 @@ function loadMonth(y, m) {
     Object.entries(v1.entries || {}).forEach(([d, e]) => {
       const day = +d;
       if (rel > 0 || (rel === 0 && day >= t.d)) return;
+      const dw = dowOf(y, m, day);
+      if (dw === 0 || dw === 6 || holidayName(y, m, day)) return;
       const w = (parseInt(e.hours, 10) || 0) * 60 + (parseInt(e.minutes, 10) || 0);
       data.entries[day] = { w, leave: '' };
     });
@@ -579,7 +587,8 @@ function compute({ ignoreToday = false } = {}) {
   const autoTarget = Math.max(0, Math.round((totalRaw - (weekdayHolidays + offDays) * BASE) / 6) * 6);
   const target = month.targetOverride !== null ? month.targetOverride : autoTarget;
 
-  let known = 0, recordedSum = 0, remaining = 0, missingPast = 0;
+  let known = 0, recordedSum = 0, remaining = 0, missingPast = 0, weightSum = 0, plannedSum = 0, plannedPartial = 0;
+  let todayRemaining = false;
   days.forEach((x) => {
     x.recorded = false; x.effective = null; x.assumed = false; x.diff = null;
     const ignore = ignoreToday && x.isToday;
@@ -599,8 +608,12 @@ function compute({ ignoreToday = false } = {}) {
         x.diff = x.effective - BASE;
       } else {
         remaining++;
-        known += credit;
+        known += credit; plannedSum += credit;
         x.plannedCredit = credit;
+        x.weight = (BASE - Math.min(credit, BASE)) / BASE;
+        weightSum += x.weight;
+        if (credit > 0) plannedPartial++;
+        if (x.isToday) todayRemaining = true;
       }
     } else if (x.e.w !== null && !ignore) {
       x.recorded = true; x.effective = x.e.w;
@@ -612,8 +625,8 @@ function compute({ ignoreToday = false } = {}) {
   let owe = monthlyExtra;
   days.forEach((x) => { if (x.diff !== null) { owe -= x.diff; x.owe = owe; } else x.owe = null; });
   const need = target - known;
-  const dailyNeed = remaining > 0 ? Math.ceil(need / remaining) : null;
-  return { days, target, autoTarget, totalRaw, weekdayHolidays, offDays, workDays, known, recordedSum, remaining, missingPast, need, dailyNeed, monthlyExtra, n, rel };
+  const dailyNeed = weightSum > 0 ? Math.ceil(need / weightSum) : null; // 온전한 근무일 1일 기준
+  return { days, target, autoTarget, totalRaw, weekdayHolidays, offDays, workDays, known, recordedSum, plannedSum, plannedPartial, remaining, todayRemaining, missingPast, need, dailyNeed, monthlyExtra, n, rel };
 }
 
 /* ---------- 렌더 ---------- */
@@ -675,9 +688,11 @@ function renderList() {
     }
     row._input = input;
 
+    const res = document.createElement('div'); res.className = 'd-res';
     const diff = document.createElement('div'); diff.className = 'd-diff';
     const bal = document.createElement('div'); bal.className = 'd-bal';
-    row.append(dateEl, main, diff, bal);
+    res.append(diff, bal);
+    row.append(dateEl, main, res);
     row._diff = diff; row._bal = bal;
     rows.set(x.d, row);
     frag.appendChild(row);
@@ -698,7 +713,7 @@ function refresh() {
       const full = x.e.leave === 'full';
       inp.disabled = full;
       if (full) { inp.value = ''; inp.placeholder = '연차'; }
-      else if (document.activeElement !== inp) { inp.placeholder = x.assumed ? '미입력' : (x.e.leave ? '근무' : '8:00'); }
+      else if (document.activeElement !== inp) { inp.placeholder = x.assumed ? '미입력' : (x.e.leave ? '근무시간' : '8:00'); }
       inp.classList.toggle('missing', x.assumed);
       row._sel.classList.toggle('on', !!x.e.leave);
     }
@@ -722,18 +737,22 @@ function refresh() {
   // 히어로
   const hv = $('heroValue'), hs = $('heroSub'), hl = $('heroLabel'), hn = $('heroNote');
   const coreMin = Math.round((parseFloat(settings.coreHours) || 0) * 60);
-  if (c.remaining > 0) {
-    hl.textContent = c.rel === 0 ? `오늘 포함 남은 ${c.remaining}일 동안 하루 평균` : `근무일 ${c.remaining}일 동안 하루 평균`;
-    hv.innerHTML = hmHTML(Math.max(0, c.dailyNeed));
-    const gap = c.dailyNeed - BASE;
+  if (c.remaining > 0 && c.need <= 0) {
+    hl.textContent = `남은 근무일 ${c.remaining}일`;
+    hv.innerHTML = '<span>필수 근무시간 충족</span>';
+    hs.innerHTML = `<span class="pill less">${fmtHM(-c.need)} 초과로 채움</span> <span style="font-size:12.5px;opacity:.7">남은 날은 코어타임만 지키면 됩니다</span>`;
+  } else if (c.remaining > 0) {
+    hl.textContent = (c.rel === 0 ? (c.todayRemaining ? `오늘 포함 남은 근무일 ${c.remaining}일` : `내일부터 남은 근무일 ${c.remaining}일`) : `근무일 ${c.remaining}일`) + ' 동안 하루 평균';
+    const shown = Math.max(c.dailyNeed, Math.min(coreMin, BASE));
+    hv.innerHTML = hmHTML(Math.max(0, shown));
+    const gap = shown - BASE;
     if (gap > 0) hs.innerHTML = `<span class="pill more">매일 8시간 + ${fmtHM(gap)} 더 근무 필요</span>`;
-    else if (gap < 0) {
-      const can = Math.min(-gap, Math.max(0, BASE - coreMin));
-      hs.innerHTML = `<span class="pill less">매일 8시간보다 ${fmtHM(-gap)} 일찍 퇴근 가능</span>` + (can < -gap ? ` <span style="font-size:12.5px;opacity:.7">코어타임 기준 최대 ${fmtHM(can)}까지</span>` : '');
-    } else hs.innerHTML = '<span class="pill even">매일 8시간씩 근무하면 충족</span>';
+    else if (gap < 0) hs.innerHTML = `<span class="pill less">매일 8시간보다 ${fmtHM(-gap)} 일찍 퇴근 가능</span>`;
+    else hs.innerHTML = '<span class="pill even">매일 8시간씩 근무하면 충족</span>';
+    if (shown > c.dailyNeed) hs.innerHTML += ` <span style="font-size:12.5px;opacity:.7">코어타임 ${settings.coreHours}시간 기준 (필수 시간만으로는 하루 ${fmtHM(Math.max(0, c.dailyNeed))})</span>`;
   } else {
     const bal = c.known - c.target;
-    hl.textContent = c.rel > 0 ? '이번 달 근무일이 없습니다' : '이번 달 최종 결과';
+    hl.textContent = c.rel > 0 ? `${m}월은 근무일이 없습니다` : (c.rel < 0 ? `${m}월 최종 결과` : '이번 달 최종 결과');
     hv.innerHTML = bal === 0 ? '<span>정확히 충족</span>' : `<span>${fmtHM(bal, { plus: true })}</span>`;
     hs.innerHTML = bal >= 0 ? '<span class="pill less">필수 근무시간 충족</span>' : '<span class="pill more">필수 근무시간 미달</span>';
   }
@@ -741,7 +760,12 @@ function refresh() {
   $('barFill').style.width = `${pct.toFixed(1)}%`;
   $('barDone').textContent = `${fmtHM(c.known)} (${Math.round(pct)}%)`;
   $('barTarget').textContent = fmtHM(c.target);
-  hn.textContent = c.missingPast > 0 ? `지난 근무일 ${c.missingPast}일 미입력 · 8시간 근무로 가정해 반영` : (c.rel === 0 ? '미래 근무일에 입력한 연차·반차는 미리 반영됩니다' : '');
+  const notes = [];
+  if (c.missingPast > 0) notes.push(`지난 근무일 ${c.missingPast}일 미입력 · 8시간 근무로 가정`);
+  if (c.plannedSum > 0) notes.push(`누적에 앞으로의 휴가 ${fmtHM(c.plannedSum)} 포함`);
+  if (c.plannedPartial > 0 && c.need > 0) notes.push(`반차일은 ${fmtHM(Math.ceil(c.dailyNeed / 2))}, 반반차일은 ${fmtHM(Math.ceil(c.dailyNeed * 3 / 4))}만 근무`);
+  if (!notes.length && c.rel >= 0 && c.remaining > 0) notes.push('앞으로의 연차·반차를 미리 선택해 두면 하루 평균에 반영됩니다');
+  hn.textContent = notes.join(' · ');
 
   // 통계
   $('sTarget').textContent = fmtHM(c.target);
@@ -842,10 +866,11 @@ function updateTodayOut() {
   const lunch = Math.max(0, parseInt(settings.lunch, 10) || 0);
   const coreMin = Math.round((parseFloat(settings.coreHours) || 0) * 60);
   const leave = x.e.leave;
-  let needWork = c.dailyNeed !== null ? c.dailyNeed : BASE;
+  const credit = LEAVE[leave] ? LEAVE[leave].credit : 0;
+  let needWork = c.dailyNeed !== null ? Math.ceil(c.dailyNeed * (BASE - credit) / BASE) : BASE - credit;
   if (!leave) needWork = Math.max(needWork, coreMin);
   needWork = Math.max(0, needWork);
-  const breakFor = (w) => (w > 240 ? lunch : 0);
+  const breakFor = (w) => (w > 270 ? lunch : 0); // 4시간 30분 초과 근무 시 휴게 반영
 
   let html = '';
   if (start === null) {
@@ -853,7 +878,7 @@ function updateTodayOut() {
     html += '<div class="out-note">출근 시각을 입력하면 퇴근 가능 시각을 알려드립니다</div>';
   } else {
     const leaveAt = start + needWork + breakFor(needWork);
-    const lunchUsed = needWork > 240 ? lunch : 0;
+    const lunchUsed = breakFor(needWork);
     html += `<div class="out-row main"><span class="out-k">오늘 퇴근 가능 시각</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`;
     html += `<div class="out-note">출근 ${fmtTimeOfDay(start)} + 근무 ${fmtHM(needWork)}${lunchUsed ? ` + 점심 ${fmtHM(lunchUsed)}` : ''} = ${fmtTimeOfDay(leaveAt)}${leave ? ` · ${LEAVE[leave].label} ${LEAVE[leave].credit / 60}시간은 별도 인정` : ''}</div>`;
     if (!leave && needWork !== BASE) {
@@ -972,7 +997,7 @@ function bind() {
     const a = document.createElement('a');
     const t = todayParts();
     a.href = URL.createObjectURL(blob);
-    a.download = `근무시간-백업-${t.y}${pad(t.m)}${pad(t.d)}.json`;
+    a.download = `work-hours-backup-${t.y}${pad(t.m)}${pad(t.d)}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
