@@ -171,6 +171,22 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .sh-leave button { height: 36px; border: 1px solid var(--line); background: var(--card); border-radius: 9px; font-weight: 600; font-size: 13.5px; color: var(--sub); }
 .sh-leave button.on { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
 /* 근무시간 입력판 */
+.note-btn { width: 30px; height: 30px; border: 0; background: transparent; border-radius: 8px; font-size: 14px; display: grid; place-items: center; opacity: .35; filter: grayscale(1); }
+.note-btn:hover { opacity: .8; background: var(--soft); }
+.note-btn.has { display: none; }
+.d-note { flex-basis: 100%; text-align: left; border: 0; background: transparent; padding: 2px 0 0; font-size: 12.5px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; cursor: pointer; }
+.d-note:hover { color: var(--ink); }
+.d-note[hidden] { display: none; }
+.note-box textarea { width: 100%; min-height: 96px; border: 1px solid var(--line); background: var(--soft); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 15px; resize: vertical; color: var(--ink); }
+.note-box textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+.note-count { text-align: right; font-size: 12px; color: var(--faint); margin: 4px 0 12px; }
+.note-actions { display: flex; gap: 8px; }
+.note-actions .btn { flex: 2; height: 46px; }
+.note-actions #noteDel { flex: 1; }
+.note-actions .btn[hidden] { display: none; }
+.coarse .note-btn { display: none; }
+.sh-note { width: 100%; height: 42px; margin-top: 14px; border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 0 12px; font: inherit; font-size: 15px; color: var(--ink); }
+.sh-note:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
 .pick-btn { width: 30px; height: 30px; border: 0; background: transparent; color: var(--faint); border-radius: 8px; font-size: 15px; display: grid; place-items: center; }
 .pick-btn:hover { background: var(--soft); color: var(--ink); }
 .coarse .pick-btn { display: none; }
@@ -433,6 +449,7 @@ details.card[open] > summary::after { content: '－'; }
         <li>근무 도중 반차·반반차를 쓴 날은 출퇴근 시각 입력에서 휴가 종류를 고른 뒤 '출근~퇴근 사이에 썼어요'를 체크하면 휴가 시간이 근무시간에서 빠집니다</li>
         <li>회사 지정 휴무일이나 새로 발표된 임시공휴일은 해당 날짜를 '휴무'로 바꾸면 근무일과 필수 시간에서 빠집니다</li>
         <li>주말·공휴일에 근무했다면 해당 날짜에 시간을 입력하면 누적에 더해집니다</li>
+        <li>날짜별 메모(최대 100자)는 PC에서는 📝 버튼, 휴대폰에서는 시간 입력판 아래 칸에 적습니다. 저장된 메모를 누르면 수정·삭제할 수 있습니다</li>
         <li>입력하지 않은 지난 근무일은 8시간 근무로 가정해 계산합니다</li>
       </ul>
       <div class="tools">
@@ -444,7 +461,7 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.5.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.6.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 <div class="sheet-bg" id="sheetBg" hidden></div>
@@ -468,8 +485,15 @@ details.card[open] > summary::after { content: '－'; }
     <div class="sh-big" id="shClockVal" style="margin-top:14px">-</div>
     <div class="sh-sub" id="shClockSub"></div>
   </div>
+  <input class="sh-note" id="shNote" maxlength="100" placeholder="📝 메모 (선택) - 외근, 야근 사유 등">
   <div class="sh-actions"><button class="btn ghost" id="shClear">지우기</button><button class="btn primary" id="shSave">저장</button></div>
 </div>
+<div class="egg-bg" id="noteBg" hidden><div class="egg note-box" role="dialog" aria-labelledby="noteTitle">
+  <h3 id="noteTitle">메모</h3><div class="egg-sub">외근, 야근 사유, 병원 방문 등 그날 남겨둘 내용</div>
+  <textarea id="noteText" maxlength="100" placeholder="예: 고객사 미팅으로 외근"></textarea>
+  <div class="note-count" id="noteCount">0/100</div>
+  <div class="note-actions"><button class="btn ghost" id="noteDel">삭제</button><button class="btn primary" id="noteSave">저장</button></div>
+</div></div>
 <canvas id="confetti" hidden></canvas>
 <div class="egg-bg" id="eggBg" hidden><div class="egg" role="dialog" aria-labelledby="eggTitle"><h3 id="eggTitle">-</h3><div class="egg-sub" id="eggSub"></div><ul id="eggList"></ul><button class="btn primary" id="eggClose">닫기</button></div></div>
 <div class="tp-bg" id="tpBg" hidden></div>
@@ -749,10 +773,11 @@ function loadMonth(y, m) {
   return data;
 }
 function saveMonth() { storage.set(KEY_V2(view.y, view.m), month); }
-function entry(d) { const e = month.entries[d] || {}; return { w: Number.isFinite(e.w) ? e.w : null, leave: e.leave || '' }; }
+function entry(d) { const e = month.entries[d] || {}; return { w: Number.isFinite(e.w) ? e.w : null, leave: e.leave || '', note: typeof e.note === 'string' ? e.note : '' }; }
 function setEntry(d, patch) {
   const e = Object.assign(entry(d), patch);
-  if (e.w === null && !e.leave) delete month.entries[d]; else month.entries[d] = e;
+  if (!e.note) delete e.note;
+  if (e.w === null && !e.leave && !e.note) delete month.entries[d]; else month.entries[d] = e;
   saveMonth();
 }
 
@@ -893,6 +918,14 @@ function renderList() {
       const iw = document.createElement('span'); iw.className = 'in-wrap'; iw.append(input, xb);
       main.append(tag, iw);
     }
+    const nb = document.createElement('button');
+    nb.type = 'button'; nb.className = 'note-btn'; nb.dataset.day = x.d; nb.textContent = '📝';
+    nb.setAttribute('aria-label', `${view.m}월 ${x.d}일 메모`);
+    main.appendChild(nb);
+    const nl = document.createElement('button');
+    nl.type = 'button'; nl.className = 'd-note'; nl.dataset.day = x.d;
+    main.appendChild(nl);
+    row._nb = nb; row._nl = nl;
     row._input = input;
     if (COARSE) { input.readOnly = true; input.inputMode = 'none'; }
 
@@ -926,6 +959,8 @@ function refresh() {
       row._sel.classList.toggle('on', !!x.e.leave);
     }
     if (row._x) row._x.hidden = x.e.w === null;
+    row._nl.hidden = !x.e.note; row._nl.textContent = x.e.note ? `📝 ${x.e.note}` : '';
+    row._nb.classList.toggle('has', !!x.e.note);
     if (x.diff !== null) {
       row._diff.textContent = x.diff === 0 ? '±0' : x.diff > 0 ? `${fmtShort(x.diff, false)} 초과` : `${fmtShort(-x.diff, false)} 부족`;
       row._diff.className = 'd-diff ' + (x.diff > 0 ? 'pos' : x.diff < 0 ? 'neg' : 'zero') + (x.assumed ? ' dim' : '');
@@ -1216,6 +1251,8 @@ function bind() {
       toast(`${view.m}/${d} 근무시간을 지웠습니다`);
       return;
     }
+    const nt = ev.target.closest('.note-btn, .d-note');
+    if (nt) { openNote(+nt.dataset.day); return; }
     const pb = ev.target.closest('.pick-btn');
     if (pb) { openSheet(+pb.dataset.day); return; }
     const el = ev.target;
@@ -1263,7 +1300,7 @@ function bind() {
     if (yy >= 1900 && yy <= 2999) { popYear = yy; drawPop(); }
   });
 
-  if (COARSE) $('inputHint').textContent = '날짜의 시간 칸을 눌러 입력';
+  if (COARSE) $('inputHint').textContent = '시간 칸을 눌러 입력 · 메모도 함께';
   // 소개
   const introSeen = storage.get(`${PREFIX}:v2:introClosed`);
   $('intro').hidden = !!introSeen;
@@ -1433,6 +1470,8 @@ function openSheet(d) {
   const half = e.leave === 'half' ? 240 : e.leave === 'quarter' ? 360 : 480;
   sheet.val = e.w !== null ? e.w : half;
   $('shMid').checked = false;
+  $('shNote').value = e.note;
+  sheet.touched = false; sheet.hadW = e.w !== null;
   $('shTitle').textContent = `${view.m}/${d} (${DOW[dowOf(view.y, view.m, d)]}) 근무시간`;
   drawSheetChips();
   $('shStart').value = settings.lastClockStart || '';
@@ -1446,12 +1485,12 @@ function closeSheet() {
   $('sheetBg').hidden = true; $('sheet').hidden = true;
   document.body.style.overflow = '';
 }
-function applySheet(w) {
+function applySheet(w, noteOnly = false) {
   if (w !== null) setTimeout(() => eggLongDay(w), 2100);
   const d = sheet.day;
   const x = compute().days[d - 1];
   const prevLeave = entry(d).leave;
-  const patch = { w };
+  const patch = { w, note: $('shNote').value.trim().slice(0, 100) };
   if (x.type === 'work' && prevLeave !== 'full' && prevLeave !== 'off') patch.leave = sheet.leave;
   setEntry(d, patch);
   const row0 = rows.get(d);
@@ -1460,14 +1499,14 @@ function applySheet(w) {
   if (row && row._input) row._input.value = w !== null ? fmtClock(w) : '';
   closeSheet();
   refresh();
-  toast(w !== null ? `${view.m}/${d} ${fmtClock(w)} 저장` : `${view.m}/${d} 기록 삭제`);
+  toast(noteOnly ? `${view.m}/${d} 메모를 저장했습니다` : (w !== null ? `${view.m}/${d} ${fmtClock(w)} 저장` : `${view.m}/${d} 근무시간 삭제`));
 }
 function bindSheet() {
   $('sheetBg').addEventListener('click', closeSheet);
   $('shClose').addEventListener('click', closeSheet);
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('sheet').hidden) closeSheet(); });
   document.querySelectorAll('#sheet .seg button').forEach((b) => b.addEventListener('click', () => setSheetTab(b.dataset.tab)));
-  document.querySelectorAll('#sheet .sh-step button').forEach((b) => b.addEventListener('click', () => { sheet.val = clampW(sheet.val + +b.dataset.d); sheetDraw(); }));
+  document.querySelectorAll('#sheet .sh-step button').forEach((b) => b.addEventListener('click', () => { sheet.touched = true; sheet.val = clampW(sheet.val + +b.dataset.d); sheetDraw(); }));
   $('shLeave').addEventListener('click', (ev) => {
     const b = ev.target.closest('button[data-l]'); if (!b) return;
     const prev = sheet.leave; sheet.leave = b.dataset.l;
@@ -1477,7 +1516,7 @@ function bindSheet() {
     drawSheetChips(); sheetDraw();
   });
   $('shMid').addEventListener('change', sheetDraw);
-  $('shChips').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-v]'); if (b) { sheet.val = +b.dataset.v; sheetDraw(); } });
+  $('shChips').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-v]'); if (b) { sheet.touched = true; sheet.val = +b.dataset.v; sheetDraw(); } });
   ['shStart', 'shEnd'].forEach((id) => $(id).addEventListener('input', () => {
     if (id === 'shStart' && $('shStart').value) { settings.lastClockStart = $('shStart').value; saveSettings(); }
     sheetDraw();
@@ -1486,7 +1525,8 @@ function bindSheet() {
     if (sheet.tab === 'clock') {
       if (sheet.clockVal === null) { toast('출근·퇴근 시각을 모두 골라주세요'); return; }
       applySheet(sheet.clockVal);
-    } else applySheet(sheet.val);
+    } else if (!sheet.touched && !sheet.hadW && $('shNote').value.trim()) applySheet(null, true);
+    else applySheet(sheet.val);
   });
   $('shClear').addEventListener('click', () => applySheet(null));
 }
@@ -1570,7 +1610,38 @@ function bindTP() {
   initTP($('shStart')); initTP($('shEnd'));
 }
 
+/* ---------- 메모 ---------- */
+let noteDay = null;
+function openNote(d) {
+  noteDay = d;
+  $('noteTitle').textContent = `${view.m}/${d} (${DOW[dowOf(view.y, view.m, d)]}) 메모`;
+  $('noteText').value = entry(d).note;
+  $('noteCount').textContent = `${$('noteText').value.length}/100`;
+  $('noteDel').hidden = !entry(d).note;
+  $('noteBg').hidden = false;
+  setTimeout(() => $('noteText').focus(), 50);
+}
+function closeNote() { $('noteBg').hidden = true; noteDay = null; }
+function saveNote(text) {
+  const d = noteDay;
+  setEntry(d, { note: text.trim().slice(0, 100) });
+  closeNote(); refresh();
+  toast(text.trim() ? `${view.m}/${d} 메모를 저장했습니다` : `${view.m}/${d} 메모를 지웠습니다`);
+}
+function bindNote() {
+  $('noteText').addEventListener('input', () => { $('noteCount').textContent = `${$('noteText').value.length}/100`; });
+  $('noteSave').addEventListener('click', () => saveNote($('noteText').value));
+  $('noteDel').addEventListener('click', () => saveNote(''));
+  $('noteBg').addEventListener('click', (ev) => { if (ev.target === $('noteBg')) closeNote(); });
+  document.addEventListener('keydown', (ev) => {
+    if ($('noteBg').hidden) return;
+    if (ev.key === 'Escape') closeNote();
+    if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) saveNote($('noteText').value);
+  });
+}
+
 bind();
+bindNote();
 bindTP();
 bindSheet();
 
