@@ -76,7 +76,41 @@ button { cursor: pointer; }
 .icon-btn { width: 34px; height: 34px; border: 0; background: transparent; border-radius: 999px; display: grid; place-items: center; font-size: 18px; color: var(--sub); }
 .icon-btn:hover { background: var(--soft); color: var(--ink); }
 .month-label { position: relative; font-weight: 700; font-size: 16px; padding: 0 8px; min-width: 112px; text-align: center; cursor: pointer; }
-.month-label input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.month-label { border: 0; background: transparent; }
+.month-label::after { content: ' ▾'; font-size: 11px; color: var(--faint); }
+.mp-wrap { position: relative; }
+.mp { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: 296px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.16); padding: 14px; }
+.mp[hidden] { display: none; }
+.mp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mp-year { font-weight: 700; font-size: 16px; }
+.mp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.mp-grid button { height: 40px; border: 0; border-radius: 10px; background: var(--soft); font-weight: 600; font-size: 14px; position: relative; }
+.mp-grid button:hover { filter: brightness(.96); }
+.mp-grid button.sel { background: var(--accent); color: #fff; }
+.mp-grid button.now:not(.sel)::after { content: ''; position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); }
+.mp-foot { display: flex; gap: 6px; margin-top: 10px; }
+.mp-foot button { flex: 1; height: 34px; font-size: 13px; }
+/* 상단 고정 요약 */
+.sticky { position: fixed; left: 0; right: 0; top: 0; z-index: 20; background: color-mix(in srgb, var(--hero) 94%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; transform: translateY(-110%); transition: transform .25s ease; padding-top: env(safe-area-inset-top); box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+.sticky.show { transform: translateY(0); }
+.sticky-in { max-width: 760px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 14px; }
+.sticky-m { font-size: 12px; color: rgba(255,255,255,.6); font-weight: 600; white-space: nowrap; }
+.sticky-item { min-width: 0; }
+.sticky-k { font-size: 11px; color: rgba(255,255,255,.6); white-space: nowrap; }
+.sticky-v { font-size: 17px; font-weight: 800; letter-spacing: -.02em; white-space: nowrap; transition: color .3s; }
+.sticky-v small { font-size: 12px; font-weight: 700; margin-left: 4px; }
+.sticky-v .up { color: #ff9a5a; }
+.sticky-v .down { color: #5be3a1; }
+.sticky-sep { width: 1px; align-self: stretch; background: rgba(255,255,255,.15); }
+.flash { animation: flash .6s ease; }
+@keyframes flash { 0% { color: var(--accent); } 100% { } }
+/* 소개 */
+.intro { position: relative; }
+.intro p { margin: 0 0 10px; font-size: 14.5px; padding-right: 28px; }
+.intro ol { margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--sub); line-height: 1.7; }
+.intro .x { position: absolute; top: 10px; right: 10px; }
+.intro-open { border: 0; background: transparent; color: var(--sub); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 0; }
+@media (max-width: 520px) { .mp { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; } .sticky-in { gap: 10px; padding: 9px 14px; } .sticky-v { font-size: 15.5px; } .sticky-m { display: none; } }
 .today-btn { border: 0; background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; font-size: 13px; padding: 6px 12px; border-radius: 999px; }
 @media (prefers-color-scheme: dark) { .today-btn { color: var(--accent); } }
 
@@ -215,14 +249,40 @@ details.card[open] > summary::after { content: '－'; }
     <div style="display:flex;align-items:center;gap:8px;">
       <div class="month-nav">
         <button class="icon-btn" id="prevMonth" aria-label="이전 달">‹</button>
-        <label class="month-label"><span id="monthText">-</span><input type="month" id="monthPicker" aria-label="연월 선택"></label>
+        <div class="mp-wrap">
+          <button class="month-label" id="monthBtn" aria-haspopup="dialog" aria-expanded="false"><span id="monthText">-</span></button>
+          <div class="mp" id="monthPop" role="dialog" aria-label="연월 선택" hidden>
+            <div class="mp-head">
+              <button class="icon-btn" id="mpPrevY" aria-label="이전 해">‹</button>
+              <span class="mp-year"><span id="mpYear">-</span>년</span>
+              <button class="icon-btn" id="mpNextY" aria-label="다음 해">›</button>
+            </div>
+            <div class="mp-grid" id="mpGrid"></div>
+            <div class="mp-foot">
+              <button class="btn ghost" id="mpYearInput">연도 직접 입력</button>
+              <button class="btn" id="mpToday">이번 달</button>
+            </div>
+          </div>
+        </div>
         <button class="icon-btn" id="nextMonth" aria-label="다음 달">›</button>
       </div>
       <button class="today-btn" id="goToday">오늘</button>
     </div>
   </header>
 
-  <section class="card hero" aria-live="polite">
+  <section class="card intro" id="intro" hidden>
+    <button class="icon-btn x" id="introClose" aria-label="설명 닫기">×</button>
+    <p><b>월 근무시간 계산기</b>는 한 달 동안의 근무일수와 필수 근무시간, 그리고 일별 실제 근무시간을 쉽게 관리할 수 있는 도구입니다.</p>
+    <ol>
+      <li>상단에서 연월을 고르면 그달의 근무일수와 필수 근무시간이 공휴일까지 반영돼 자동 계산됩니다</li>
+      <li>아래 일별 근무 기록에 날마다 실제 근무시간을 입력합니다 (예: 830 → 8시간 30분)</li>
+      <li>연차·반차·반반차는 날짜 옆에서 고르면 근무시간으로 인정됩니다</li>
+      <li>남은 근무일에 하루 평균 몇 시간을 일해야 하는지, 오늘 몇 시에 퇴근하면 되는지 바로 확인할 수 있습니다</li>
+    </ol>
+  </section>
+  <div style="text-align:right;margin:-4px 2px 10px;" id="introOpenWrap" hidden><button class="intro-open" id="introOpen">사용 방법 보기</button></div>
+
+  <section class="card hero" id="hero" aria-live="polite">
     <div class="hero-label" id="heroLabel">-</div>
     <div class="hero-value" id="heroValue">-</div>
     <div class="hero-sub" id="heroSub"></div>
@@ -296,9 +356,17 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.1.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.2.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
+<div class="sticky" id="sticky" aria-hidden="true">
+  <div class="sticky-in">
+    <div class="sticky-m" id="stMonth">-</div>
+    <div class="sticky-item"><div class="sticky-k" id="stAvgK">하루 평균</div><div class="sticky-v" id="stAvg">-</div></div>
+    <div class="sticky-sep"></div>
+    <div class="sticky-item"><div class="sticky-k" id="stSecondK">남은 필요 시간</div><div class="sticky-v" id="stSecond">-</div></div>
+  </div>
+</div>
 
 <script>
 (() => {
@@ -732,7 +800,7 @@ function refresh() {
 
   // 헤더
   $('monthText').textContent = `${y}년 ${m}월`;
-  $('monthPicker').value = `${y}-${pad(m)}`;
+
 
   // 히어로
   const hv = $('heroValue'), hs = $('heroSub'), hl = $('heroLabel'), hn = $('heroNote');
@@ -808,6 +876,32 @@ function refresh() {
   $('setCore').value = document.activeElement === $('setCore') ? $('setCore').value : settings.coreHours;
 
   renderToday();
+  updateSticky(c);
+}
+
+let todayLeaveText = null;
+let lastSticky = {};
+function updateSticky(c) {
+  $('stMonth').textContent = `${view.y}.${pad(view.m)}`;
+  const coreMin = Math.round((parseFloat(settings.coreHours) || 0) * 60);
+  let avg = '-', avgCls = '';
+  if (c.remaining > 0 && c.need > 0) {
+    const shown = Math.max(c.dailyNeed, Math.min(coreMin, BASE));
+    const gap = shown - BASE;
+    avg = `${fmtHM(shown)}<small class="${gap > 0 ? 'up' : gap < 0 ? 'down' : ''}">${gap === 0 ? '' : (gap > 0 ? '+' : '-') + fmtHM(Math.abs(gap))}</small>`;
+  } else if (c.remaining > 0) avg = '충족';
+  else avg = fmtHM(c.known - c.target, { plus: true });
+  $('stAvgK').textContent = c.remaining > 0 ? `하루 평균 (남은 ${c.remaining}일)` : '최종 결과';
+  let k2, v2;
+  if (todayLeaveText) { k2 = '오늘 퇴근 가능'; v2 = todayLeaveText; }
+  else { k2 = '남은 필요 시간'; v2 = fmtHM(Math.max(0, c.need)); }
+  $('stSecondK').textContent = k2;
+  [['stAvg', avg], ['stSecond', v2]].forEach(([id, html]) => {
+    const el = $(id);
+    if (lastSticky[id] !== undefined && lastSticky[id] !== html) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+    lastSticky[id] = html;
+    el.innerHTML = html;
+  });
 }
 
 function hmHTML(min) {
@@ -823,7 +917,7 @@ function renderToday() {
   const body = $('todayBody');
   const isCur = view.y === t.y && view.m === t.m;
   $('todayDate').textContent = `${t.m}/${t.d} (${DOW[dowOf(t.y, t.m, t.d)]})`;
-  if (!isCur) { card.hidden = true; return; }
+  if (!isCur) { card.hidden = true; todayLeaveText = null; return; }
   card.hidden = false;
 
   const c = compute({ ignoreToday: true });
@@ -873,11 +967,13 @@ function updateTodayOut() {
   const breakFor = (w) => (w > 270 ? lunch : 0); // 4시간 30분 초과 근무 시 휴게 반영
 
   let html = '';
+  todayLeaveText = null;
   if (start === null) {
     html += `<div class="out-row main"><span class="out-k">오늘 필요한 근무</span><span class="out-v">${fmtHM(needWork)}</span></div>`;
     html += '<div class="out-note">출근 시각을 입력하면 퇴근 가능 시각을 알려드립니다</div>';
   } else {
     const leaveAt = start + needWork + breakFor(needWork);
+    todayLeaveText = fmtTimeOfDay(leaveAt);
     const lunchUsed = breakFor(needWork);
     html += `<div class="out-row main"><span class="out-k">오늘 퇴근 가능 시각</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`;
     html += `<div class="out-note">출근 ${fmtTimeOfDay(start)} + 근무 ${fmtHM(needWork)}${lunchUsed ? ` + 점심 ${fmtHM(lunchUsed)}` : ''} = ${fmtTimeOfDay(leaveAt)}${leave ? ` · ${LEAVE[leave].label} ${LEAVE[leave].credit / 60}시간은 별도 인정` : ''}</div>`;
@@ -896,6 +992,7 @@ function updateTodayOut() {
     }
   }
   out.innerHTML = html;
+  updateSticky(compute());
   const ap = $('applyToday');
   if (ap) ap.addEventListener('click', () => {
     const w = +ap.dataset.w;
@@ -958,10 +1055,54 @@ function bind() {
   $('prevMonth').addEventListener('click', () => go(-1));
   $('nextMonth').addEventListener('click', () => go(1));
   $('goToday').addEventListener('click', () => { const t = todayParts(); setView(t.y, t.m); });
-  $('monthPicker').addEventListener('change', (ev) => {
-    const [yy, mm] = (ev.target.value || '').split('-').map(Number);
-    if (yy && mm) setView(yy, mm);
+  // 연월 선택 팝업
+  const pop = $('monthPop');
+  let popYear = view.y;
+  const drawPop = () => {
+    $('mpYear').textContent = popYear;
+    const t = todayParts();
+    $('mpGrid').innerHTML = Array.from({ length: 12 }, (_, i) => {
+      const mm = i + 1;
+      const cls = [popYear === view.y && mm === view.m ? 'sel' : '', popYear === t.y && mm === t.m ? 'now' : ''].join(' ');
+      return `<button class="${cls}" data-m="${mm}">${mm}월</button>`;
+    }).join('');
+  };
+  const openPop = () => { popYear = view.y; drawPop(); pop.hidden = false; $('monthBtn').setAttribute('aria-expanded', 'true'); };
+  const closePop = () => { pop.hidden = true; $('monthBtn').setAttribute('aria-expanded', 'false'); };
+  $('monthBtn').addEventListener('click', (ev) => { ev.stopPropagation(); pop.hidden ? openPop() : closePop(); });
+  pop.addEventListener('click', (ev) => ev.stopPropagation());
+  document.addEventListener('click', () => { if (!pop.hidden) closePop(); });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !pop.hidden) closePop(); });
+  $('mpPrevY').addEventListener('click', () => { popYear--; drawPop(); });
+  $('mpNextY').addEventListener('click', () => { popYear++; drawPop(); });
+  $('mpGrid').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-m]');
+    if (!b) return;
+    setView(popYear, +b.dataset.m); closePop();
   });
+  $('mpToday').addEventListener('click', () => { const t = todayParts(); setView(t.y, t.m); closePop(); });
+  $('mpYearInput').addEventListener('click', () => {
+    const v = prompt('이동할 연도를 입력하세요 (예: 2030)', String(popYear));
+    const yy = parseInt(v, 10);
+    if (yy >= 1900 && yy <= 2999) { popYear = yy; drawPop(); }
+  });
+
+  // 소개
+  const introSeen = storage.get(`${PREFIX}:v2:introClosed`);
+  $('intro').hidden = !!introSeen;
+  $('introOpenWrap').hidden = !introSeen;
+  $('introClose').addEventListener('click', () => { storage.set(`${PREFIX}:v2:introClosed`, true); $('intro').hidden = true; $('introOpenWrap').hidden = false; });
+  $('introOpen').addEventListener('click', () => { storage.del(`${PREFIX}:v2:introClosed`); $('intro').hidden = false; $('introOpenWrap').hidden = true; });
+
+  // 상단 고정 요약: 상단 요약 카드가 화면에서 사라지면 표시
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(([e]) => {
+      const show = !e.isIntersecting && e.boundingClientRect.top < 0;
+      $('sticky').classList.toggle('show', show);
+      $('sticky').setAttribute('aria-hidden', show ? 'false' : 'true');
+    });
+    io.observe($('hero'));
+  }
   document.addEventListener('keydown', (ev) => {
     if (ev.target.matches('input, select, textarea')) return;
     if (ev.key === 'ArrowLeft') go(-1);
