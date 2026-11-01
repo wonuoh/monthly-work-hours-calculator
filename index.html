@@ -134,6 +134,12 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .tp-bg { background: rgba(0,0,0,.25); }
   .tp-grid button, .tp-ampm button, .tp-foot button { height: 42px; }
 }
+.chk { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; margin-top: 10px; cursor: pointer; line-height: 1.45; }
+.chk input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; margin: 1px 0 0; }
+.chk[hidden] { display: none; }
+.sh-leave { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+.sh-leave button { height: 36px; border: 1px solid var(--line); background: var(--card); border-radius: 9px; font-weight: 600; font-size: 13.5px; color: var(--sub); }
+.sh-leave button.on { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
 /* 근무시간 입력판 */
 .pick-btn { width: 30px; height: 30px; border: 0; background: transparent; color: var(--faint); border-radius: 8px; font-size: 15px; display: grid; place-items: center; }
 .pick-btn:hover { background: var(--soft); color: var(--ink); }
@@ -393,6 +399,7 @@ details.card[open] > summary::after { content: '－'; }
       <ul class="help">
         <li>PC에서는 숫자만 입력해도 됩니다. 9 → 9:00, 830 → 8:30, 1015 → 10:15. ⏱ 버튼이나 휴대폰에서 시간 칸을 누르면 입력판이 열립니다</li>
         <li>연차·반차·반반차는 각각 8·4·2시간으로 인정됩니다. 반차일은 실제 근무한 시간만 입력</li>
+        <li>근무 도중 반차·반반차를 쓴 날은 출퇴근 시각 입력에서 휴가 종류를 고른 뒤 '출근~퇴근 사이에 썼어요'를 체크하면 휴가 시간이 근무시간에서 빠집니다</li>
         <li>회사 지정 휴무일이나 새로 발표된 임시공휴일은 해당 날짜를 '휴무'로 바꾸면 근무일과 필수 시간에서 빠집니다</li>
         <li>주말·공휴일에 근무했다면 해당 날짜에 시간을 입력하면 누적에 더해집니다</li>
         <li>입력하지 않은 지난 근무일은 8시간 근무로 가정해 계산합니다</li>
@@ -406,13 +413,14 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.3.1 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.4.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 <div class="sheet-bg" id="sheetBg" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle" hidden>
   <div class="sheet-handle"></div>
   <div class="sheet-head"><b id="shTitle">-</b><button class="icon-btn" id="shClose" aria-label="닫기">×</button></div>
+  <div class="sh-leave" id="shLeave"><button data-l="">휴가 없음</button><button data-l="quarter">반반차 (2시간)</button><button data-l="half">반차 (4시간)</button></div>
   <div class="seg"><button data-tab="dur" class="on">근무시간</button><button data-tab="clock">출퇴근 시각</button></div>
   <div id="shDur">
     <div class="sh-big" id="shVal">8:00</div>
@@ -425,6 +433,7 @@ details.card[open] > summary::after { content: '－'; }
       <div class="field"><label for="shStart">출근</label><button type="button" class="tp" id="shStart" data-label="출근 시각" data-default="09:00"></button></div>
       <div class="field"><label for="shEnd">퇴근</label><button type="button" class="tp" id="shEnd" data-label="퇴근 시각" data-default="18:00"></button></div>
     </div>
+    <label class="chk" id="shMidWrap" hidden><input type="checkbox" id="shMid"><span>출근~퇴근 사이에 <b id="shMidLabel">반반차</b>를 썼어요 (그 시간은 근무에서 제외)</span></label>
     <div class="sh-big" id="shClockVal" style="margin-top:14px">-</div>
     <div class="sh-sub" id="shClockSub"></div>
   </div>
@@ -1017,17 +1026,27 @@ function renderToday() {
 
   if (!body.querySelector('#tStart')) {
     body.innerHTML = `
+      <div class="sh-leave" id="tLeave"><button data-l="">휴가 없음</button><button data-l="quarter">반반차 (2시간)</button><button data-l="half">반차 (4시간)</button></div>
       <div class="today-grid">
         <div class="field"><label for="tStart">출근 시각</label><button type="button" class="tp" id="tStart" data-label="출근 시각" data-default="09:00"></button></div>
         <div class="field"><label for="tEnd">퇴근 시각 (선택)</label><button type="button" class="tp" id="tEnd" data-label="퇴근 시각" data-default="18:00"></button></div>
       </div>
+      <label class="chk" id="tMidWrap" hidden><input type="checkbox" id="tMid"><span>출근~퇴근 사이에 <b id="tMidLabel"></b>를 써요 (그 시간만큼 퇴근이 늦어짐)</span></label>
       <div class="today-out" id="tOut"></div>`;
     const saved = settings.today && settings.today.date === `${t.y}-${pad(t.m)}-${pad(t.d)}` ? settings.today : null;
     initTP($('tStart')); initTP($('tEnd'));
     $('tStart').value = saved ? saved.start || '' : '';
     $('tEnd').value = saved ? saved.end || '' : '';
+    $('tMid').checked = !!(saved && saved.mid);
+    $('tMid').addEventListener('change', () => onChange());
+    $('tLeave').addEventListener('click', (ev) => {
+      const b = ev.target.closest('button[data-l]'); if (!b) return;
+      setEntry(t.d, { leave: b.dataset.l });
+      const row = rows.get(t.d); if (row && row._sel) row._sel.value = b.dataset.l;
+      refresh();
+    });
     const onChange = () => {
-      settings.today = { date: `${t.y}-${pad(t.m)}-${pad(t.d)}`, start: $('tStart').value, end: $('tEnd').value };
+      settings.today = { date: `${t.y}-${pad(t.m)}-${pad(t.d)}`, start: $('tStart').value, end: $('tEnd').value, mid: $('tMid').checked };
       saveSettings();
       updateTodayOut();
     };
@@ -1053,6 +1072,10 @@ function updateTodayOut() {
   if (!leave) needWork = Math.max(needWork, coreMin);
   needWork = Math.max(0, needWork);
   const breakFor = (w) => (w > 270 ? lunch : 0); // 4시간 30분 초과 근무 시 휴게 반영
+  [...$('tLeave').children].forEach((b) => b.classList.toggle('on', b.dataset.l === leave));
+  $('tMidWrap').hidden = !credit;
+  $('tMidLabel').textContent = credit ? `${LEAVE[leave].label} ${credit / 60}시간` : '';
+  const mid = credit && $('tMid').checked ? credit : 0;
 
   let html = '';
   todayLeaveText = null;
@@ -1060,20 +1083,18 @@ function updateTodayOut() {
     html += `<div class="out-row main"><span class="out-k">오늘 필요한 근무</span><span class="out-v">${fmtHM(needWork)}</span></div>`;
     html += '<div class="out-note">출근 시각을 입력하면 퇴근 가능 시각을 알려드립니다</div>';
   } else {
-    const leaveAt = start + needWork + breakFor(needWork);
-    todayLeaveText = fmtTimeOfDay(leaveAt);
     const lunchUsed = breakFor(needWork);
+    const leaveAt = start + needWork + lunchUsed + mid;
+    todayLeaveText = fmtTimeOfDay(leaveAt);
     html += `<div class="out-row main"><span class="out-k">오늘 퇴근 가능 시각</span><span class="out-v">${fmtTimeOfDay(leaveAt)}</span></div>`;
-    html += `<div class="out-note">출근 ${fmtTimeOfDay(start)} + 근무 ${fmtHM(needWork)}${lunchUsed ? ` + 점심 ${fmtHM(lunchUsed)}` : ''} = ${fmtTimeOfDay(leaveAt)}${leave ? ` · ${LEAVE[leave].label} ${LEAVE[leave].credit / 60}시간은 별도 인정` : ''}</div>`;
+    html += `<div class="out-note">출근 ${fmtTimeOfDay(start)} + 근무 ${fmtHM(needWork)}${lunchUsed ? ` + 점심 ${fmtHM(lunchUsed)}` : ''}${mid ? ` + ${LEAVE[leave].label} ${fmtHM(mid)}` : ''} = ${fmtTimeOfDay(leaveAt)}${credit && !mid ? ` · ${LEAVE[leave].label} ${credit / 60}시간은 별도 인정` : ''}</div>`;
     if (!leave && needWork !== BASE) {
       const at8 = start + BASE + lunch;
       const d = BASE - needWork;
       html += `<div class="out-note">참고: 정확히 8시간만 근무하면 ${fmtTimeOfDay(at8)} 퇴근 · 이 경우 남은 근무일에 ${fmtHM(Math.abs(d))} ${d < 0 ? '더 나눠서 채워야 함' : '여유가 더 생김'}</div>`;
     }
     if (end !== null) {
-      let span = end - start;
-      if (span < 0) span += 1440;
-      const worked = Math.max(0, span - breakFor(span - lunch));
+      const worked = workedFromClock(start, end, mid).worked;
       const delta = worked - needWork;
       html += `<div class="out-row"><span class="out-k">오늘 실제 근무</span><span class="out-v" style="font-size:16px">${fmtHM(worked)} <span class="${delta >= 0 ? 'pos' : 'neg'}" style="font-size:13px">(${fmtShort(delta)})</span></span></div>`;
       html += `<button class="btn primary" id="applyToday" data-w="${worked}">오늘 기록에 ${fmtClock(worked)} 반영</button>`;
@@ -1297,32 +1318,47 @@ document.addEventListener('visibilitychange', () => {
   if (t.d !== lastDay) { lastDay = t.d; setView(view.y, view.m); }
 });
 
+/* 출퇴근 시각 → 실근무시간 (중간 휴가 제외, 4시간 30분 초과 시 휴게 제외) */
+function workedFromClock(start, end, midLeave) {
+  let span = end - start; if (span < 0) span += 1440;
+  const lunch = Math.max(0, parseInt(settings.lunch, 10) || 0);
+  const net = Math.max(0, span - midLeave);
+  const useLunch = net - lunch > 270 ? lunch : 0;
+  return { worked: net - useLunch, useLunch, span };
+}
 /* ---------- 근무시간 입력판 ---------- */
 const sheet = { day: null, val: 480, tab: 'dur' };
 function clampW(v) { return Math.min(1440, Math.max(0, v)); }
 function sheetDraw() {
   const x = compute().days[sheet.day - 1];
   $('shVal').textContent = fmtClock(sheet.val);
-  const credit = LEAVE[x.e.leave] ? LEAVE[x.e.leave].credit : 0;
+  const credit = LEAVE[sheet.leave] ? LEAVE[sheet.leave].credit : 0;
   const isWork = x.type === 'work';
+  $('shLeave').hidden = !isWork;
+  [...$('shLeave').children].forEach((b) => b.classList.toggle('on', b.dataset.l === sheet.leave));
+  $('shMidWrap').hidden = !(isWork && credit > 0);
+  $('shMidLabel').textContent = credit ? `${LEAVE[sheet.leave].label} ${credit / 60}시간` : '';
   const diff = isWork ? sheet.val + credit - BASE : sheet.val;
   $('shSub').textContent = isWork
-    ? (diff === 0 ? '8시간 기준 ±0' : `8시간 기준 ${fmtShort(Math.abs(diff), false)} ${diff > 0 ? '초과' : '부족'}`) + (credit ? ` · ${LEAVE[x.e.leave].label} ${credit / 60}시간 포함` : '')
+    ? (diff === 0 ? '8시간 기준 ±0' : `8시간 기준 ${fmtShort(Math.abs(diff), false)} ${diff > 0 ? '초과' : '부족'}`) + (credit ? ` · ${LEAVE[sheet.leave].label} ${credit / 60}시간 포함` : '')
     : '휴일 근무 · 전부 초과로 인정';
   [...$('shChips').children].forEach((b) => b.classList.toggle('on', +b.dataset.v === sheet.val));
   const st = parseClock($('shStart').value), en = parseClock($('shEnd').value);
   if (st !== null && en !== null) {
-    let span = en - st; if (span < 0) span += 1440;
-    const lunch = Math.max(0, parseInt(settings.lunch, 10) || 0);
-    const useLunch = span - lunch > 270 ? lunch : 0;
-    sheet.clockVal = Math.max(0, span - useLunch);
+    const mid = (!$('shMidWrap').hidden && $('shMid').checked) ? credit : 0;
+    const r = workedFromClock(st, en, mid);
+    sheet.clockVal = r.worked;
     $('shClockVal').textContent = fmtClock(sheet.clockVal);
-    $('shClockSub').textContent = `${fmtTimeOfDay(st)} ~ ${fmtTimeOfDay(en)}${useLunch ? ` · 점심 ${fmtHM(useLunch)} 제외` : ''}`;
+    $('shClockSub').textContent = `${fmtTimeOfDay(st)} ~ ${fmtTimeOfDay(en)}${mid ? ` · ${LEAVE[sheet.leave].label} ${fmtHM(mid)} 제외` : ''}${r.useLunch ? ` · 점심 ${fmtHM(r.useLunch)} 제외` : ''}${credit ? ` → 근무 ${fmtClock(r.worked)} + ${LEAVE[sheet.leave].label} ${credit / 60}시간 = ${fmtClock(r.worked + credit)}` : ''}`;
   } else {
     sheet.clockVal = null;
     $('shClockVal').textContent = '-';
     $('shClockSub').textContent = '출근·퇴근 시각을 고르면 근무시간이 계산됩니다';
   }
+}
+function drawSheetChips() {
+  const chips = sheet.leave === 'half' ? [180, 210, 240, 270, 300, 330, 360, 390] : sheet.leave === 'quarter' ? [300, 330, 360, 390, 420, 450, 480, 510] : [420, 450, 480, 510, 540, 570, 600, 660];
+  $('shChips').innerHTML = chips.map((v) => `<button data-v="${v}">${fmtClock(v)}</button>`).join('');
 }
 function setSheetTab(tab) {
   sheet.tab = tab;
@@ -1333,11 +1369,12 @@ function setSheetTab(tab) {
 function openSheet(d) {
   const e = entry(d);
   sheet.day = d;
+  sheet.leave = (e.leave === 'half' || e.leave === 'quarter') ? e.leave : '';
   const half = e.leave === 'half' ? 240 : e.leave === 'quarter' ? 360 : 480;
   sheet.val = e.w !== null ? e.w : half;
+  $('shMid').checked = false;
   $('shTitle').textContent = `${view.m}/${d} (${DOW[dowOf(view.y, view.m, d)]}) 근무시간`;
-  const chips = e.leave === 'half' ? [180, 210, 240, 270, 300, 330, 360, 390] : e.leave === 'quarter' ? [300, 330, 360, 390, 420, 450, 480, 510] : [420, 450, 480, 510, 540, 570, 600, 660];
-  $('shChips').innerHTML = chips.map((v) => `<button data-v="${v}">${fmtClock(v)}</button>`).join('');
+  drawSheetChips();
   $('shStart').value = settings.lastClockStart || '';
   $('shEnd').value = '';
   setSheetTab('dur');
@@ -1351,7 +1388,13 @@ function closeSheet() {
 }
 function applySheet(w) {
   const d = sheet.day;
-  setEntry(d, { w });
+  const x = compute().days[d - 1];
+  const prevLeave = entry(d).leave;
+  const patch = { w };
+  if (x.type === 'work' && prevLeave !== 'full' && prevLeave !== 'off') patch.leave = sheet.leave;
+  setEntry(d, patch);
+  const row0 = rows.get(d);
+  if (row0 && row0._sel && patch.leave !== undefined) row0._sel.value = patch.leave;
   const row = rows.get(d);
   if (row && row._input) row._input.value = w !== null ? fmtClock(w) : '';
   closeSheet();
@@ -1364,6 +1407,15 @@ function bindSheet() {
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('sheet').hidden) closeSheet(); });
   document.querySelectorAll('#sheet .seg button').forEach((b) => b.addEventListener('click', () => setSheetTab(b.dataset.tab)));
   document.querySelectorAll('#sheet .sh-step button').forEach((b) => b.addEventListener('click', () => { sheet.val = clampW(sheet.val + +b.dataset.d); sheetDraw(); }));
+  $('shLeave').addEventListener('click', (ev) => {
+    const b = ev.target.closest('button[data-l]'); if (!b) return;
+    const prev = sheet.leave; sheet.leave = b.dataset.l;
+    const was = prev === 'half' ? 240 : prev === 'quarter' ? 360 : 480;
+    const now = sheet.leave === 'half' ? 240 : sheet.leave === 'quarter' ? 360 : 480;
+    if (sheet.val === was) sheet.val = now;
+    drawSheetChips(); sheetDraw();
+  });
+  $('shMid').addEventListener('change', sheetDraw);
   $('shChips').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-v]'); if (b) { sheet.val = +b.dataset.v; sheetDraw(); } });
   ['shStart', 'shEnd'].forEach((id) => $(id).addEventListener('input', () => {
     if (id === 'shStart' && $('shStart').value) { settings.lastClockStart = $('shStart').value; saveSettings(); }
