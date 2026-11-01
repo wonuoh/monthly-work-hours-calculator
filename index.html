@@ -1592,10 +1592,8 @@ $('logo').addEventListener('click', () => {
     $('eggList').innerHTML = '';
   } else {
     const items = [
-      ['🎬', `영화 <b>${Math.floor(w / 120).toLocaleString()}편</b> 정주행`],
       ['🚄', `서울↔부산 KTX <b>${(w / 330).toFixed(1)}회</b> 왕복`],
       ['🍜', `컵라면 <b>${Math.floor(w / 4).toLocaleString()}개</b> 익히기`],
-      ['😴', `8시간 숙면 <b>${(w / 480).toFixed(1)}일</b>`],
       ['🌍', `지구 자전 <b>${(w / 1436).toFixed(2)}바퀴</b> 동안 근무`]
     ];
     $('eggSub').textContent = '기록된 근무시간 기준 · 오늘도 수고 많으셨습니다';
