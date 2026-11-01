@@ -134,9 +134,9 @@ button { cursor: pointer; }
 .today-empty { font-size: 14px; color: var(--sub); }
 
 /* Day list */
-.list-head { display: grid; grid-template-columns: 64px 1fr 76px 84px; gap: 8px; padding: 0 4px 8px; font-size: 12px; color: var(--faint); border-bottom: 1px solid var(--line); }
+.list-head { display: grid; grid-template-columns: 60px 1fr 88px 112px; gap: 8px; padding: 0 4px 8px; font-size: 12px; color: var(--faint); border-bottom: 1px solid var(--line); }
 .list-head span:nth-child(3), .list-head span:nth-child(4) { text-align: right; }
-.row { display: grid; grid-template-columns: 64px 1fr 76px 84px; gap: 8px; align-items: center; padding: 8px 4px; border-bottom: 1px solid var(--line); min-height: 52px; }
+.row { display: grid; grid-template-columns: 60px 1fr 88px 112px; gap: 8px; align-items: center; padding: 8px 4px; border-bottom: 1px solid var(--line); min-height: 52px; }
 .row:last-child { border-bottom: 0; }
 .row.is-today { background: var(--accent-soft); border-radius: 10px; border-bottom-color: transparent; }
 .row.rest { min-height: 40px; padding-top: 5px; padding-bottom: 5px; }
@@ -161,11 +161,11 @@ button { cursor: pointer; }
 .pos { color: var(--pos); }
 .neg { color: var(--neg); }
 .zero, .dim { color: var(--faint); }
-.list-foot { display: grid; grid-template-columns: 64px 1fr 76px 84px; gap: 8px; padding: 12px 4px 0; border-top: 1px solid var(--line); margin-top: 4px; font-weight: 700; font-size: 14px; }
+.list-foot { display: grid; grid-template-columns: 60px 1fr 88px 112px; gap: 8px; padding: 12px 4px 0; border-top: 1px solid var(--line); margin-top: 4px; font-weight: 700; font-size: 14px; }
 .list-foot span:nth-child(3), .list-foot span:nth-child(4) { text-align: right; }
 .legend { font-size: 12px; color: var(--faint); margin-top: 10px; }
 @media (max-width: 520px) {
-  .list-head, .row, .list-foot { grid-template-columns: 48px 1fr 62px; }
+  .list-head, .row, .list-foot { grid-template-columns: 46px 1fr 74px; }
   .list-head span:nth-child(4), .d-bal, .list-foot span:nth-child(4) { display: none; }
   .t-input { width: 66px; }
   .leave { padding-right: 22px; background-position: right 7px center; }
@@ -231,7 +231,7 @@ details.card[open] > summary::after { content: '－'; }
     <div class="stat"><div class="stat-k">월 필수 근무시간</div><div class="stat-v" id="sTarget">-</div><div class="stat-s" id="sTargetS">-</div></div>
     <div class="stat"><div class="stat-k">남은 필요 시간</div><div class="stat-v" id="sRemain">-</div><div class="stat-s" id="sRemainS">-</div></div>
     <div class="stat"><div class="stat-k">근무일</div><div class="stat-v" id="sDays">-</div><div class="stat-s" id="sDaysS">-</div></div>
-    <div class="stat"><div class="stat-k">8시간 기준 대비</div><div class="stat-v" id="sExtra">-</div><div class="stat-s">월 추가 필요분</div></div>
+    <div class="stat"><div class="stat-k">이달 초과근무 필요</div><div class="stat-v" id="sExtra">-</div><div class="stat-s">매일 8시간 외 추가 총량</div></div>
   </div>
 
   <div class="notice" id="missingNotice" hidden></div>
@@ -243,10 +243,10 @@ details.card[open] > summary::after { content: '－'; }
 
   <section class="card">
     <div class="card-title"><span>일별 근무 기록</span><span style="font-weight:500;color:var(--faint)">예: 830 → 8:30</span></div>
-    <div class="list-head"><span>날짜</span><span>근무시간 · 휴가</span><span>8시간 대비</span><span>남은 추가</span></div>
+    <div class="list-head"><span>날짜</span><span>근무시간 · 휴가</span><span>당일 초과/부족</span><span>남은 초과근무</span></div>
     <div id="dayList"></div>
     <div class="list-foot"><span>합계</span><span id="fActual">-</span><span id="fDiff">-</span><span></span></div>
-    <div class="legend">남은 추가: 이달 필수 근무시간을 채우기 위해 8시간 외에 더 필요한 시간(초록은 여유분)</div>
+    <div class="legend">당일 초과/부족: 그날 근무시간 - 8시간<br>남은 초과근무: 그날까지 기록 기준, 이달 필수 근무시간을 채우려면 8시간 외에 더 해야 하는 시간의 합계</div>
   </section>
 
   <details class="card" id="settingsCard">
@@ -290,7 +290,7 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.0.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.0.1 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -703,10 +703,10 @@ function refresh() {
       row._sel.classList.toggle('on', !!x.e.leave);
     }
     if (x.diff !== null) {
-      row._diff.textContent = x.diff === 0 ? '0' : fmtShort(x.diff);
+      row._diff.textContent = x.diff === 0 ? '±0' : x.diff > 0 ? `${fmtShort(x.diff, false)} 초과` : `${fmtShort(-x.diff, false)} 부족`;
       row._diff.className = 'd-diff ' + (x.diff > 0 ? 'pos' : x.diff < 0 ? 'neg' : 'zero') + (x.assumed ? ' dim' : '');
       const o = x.owe;
-      row._bal.textContent = o > 0 ? fmtShort(o, false) : o < 0 ? `+${fmtShort(-o, false)} 여유` : '0';
+      row._bal.textContent = o > 0 ? `${fmtShort(o, false)} 더 필요` : o < 0 ? `${fmtShort(-o, false)} 초과 달성` : '충족';
       row._bal.className = 'd-bal ' + (o > 0 ? 'neg' : o < 0 ? 'pos' : 'zero');
     } else {
       row._diff.textContent = (x.type === 'work') ? (x.plannedCredit ? `+${fmtShort(x.plannedCredit, false)} 휴가` : '') : '';
@@ -726,11 +726,11 @@ function refresh() {
     hl.textContent = c.rel === 0 ? `오늘 포함 남은 ${c.remaining}일 동안 하루 평균` : `근무일 ${c.remaining}일 동안 하루 평균`;
     hv.innerHTML = hmHTML(Math.max(0, c.dailyNeed));
     const gap = c.dailyNeed - BASE;
-    if (gap > 0) hs.innerHTML = `<span class="pill more">8시간보다 ${fmtHM(gap)} 더</span>`;
+    if (gap > 0) hs.innerHTML = `<span class="pill more">매일 8시간 + ${fmtHM(gap)} 더 근무 필요</span>`;
     else if (gap < 0) {
       const can = Math.min(-gap, Math.max(0, BASE - coreMin));
-      hs.innerHTML = `<span class="pill less">8시간보다 ${fmtHM(-gap)} 덜</span>` + (can < -gap ? ` <span style="font-size:12.5px;opacity:.7">코어타임 기준 최대 ${fmtHM(can)} 단축</span>` : '');
-    } else hs.innerHTML = '<span class="pill even">딱 8시간씩</span>';
+      hs.innerHTML = `<span class="pill less">매일 8시간보다 ${fmtHM(-gap)} 일찍 퇴근 가능</span>` + (can < -gap ? ` <span style="font-size:12.5px;opacity:.7">코어타임 기준 최대 ${fmtHM(can)}까지</span>` : '');
+    } else hs.innerHTML = '<span class="pill even">매일 8시간씩 근무하면 충족</span>';
   } else {
     const bal = c.known - c.target;
     hl.textContent = c.rel > 0 ? '이번 달 근무일이 없습니다' : '이번 달 최종 결과';
@@ -750,7 +750,7 @@ function refresh() {
   $('sRemainS').textContent = c.need < 0 ? `${fmtHM(-c.need)} 초과 달성` : `${Math.max(0, c.need).toLocaleString()}분`;
   $('sDays').textContent = `${c.workDays}일`;
   $('sDaysS').textContent = c.rel === 0 ? `남은 ${c.remaining}일` : (c.rel < 0 ? '지난 달' : '예정');
-  $('sExtra').textContent = fmtHM(c.monthlyExtra, { plus: true });
+  $('sExtra').textContent = c.monthlyExtra >= 0 ? fmtHM(c.monthlyExtra) : `${fmtHM(-c.monthlyExtra)} 덜 근무`;
 
   // 미입력 안내
   const notice = $('missingNotice');
