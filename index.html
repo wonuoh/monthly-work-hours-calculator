@@ -67,7 +67,7 @@ body {
 }
 .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); }
 button, input, select { font: inherit; color: inherit; }
-button { cursor: pointer; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 /* Header */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 16px; flex-wrap: wrap; }
@@ -110,6 +110,32 @@ button { cursor: pointer; }
 .intro ol { margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--sub); line-height: 1.7; }
 .intro .x { position: absolute; top: 10px; right: 10px; }
 .intro-open { border: 0; background: transparent; color: var(--sub); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; padding: 0; }
+/* 근무시간 입력판 */
+.pick-btn { width: 30px; height: 30px; border: 0; background: transparent; color: var(--faint); border-radius: 8px; font-size: 15px; display: grid; place-items: center; }
+.pick-btn:hover { background: var(--soft); color: var(--ink); }
+.coarse .pick-btn { display: none; }
+.coarse .t-input { cursor: pointer; caret-color: transparent; }
+.sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 40; }
+.sheet-bg[hidden], .sheet[hidden] { display: none; }
+.sheet { position: fixed; z-index: 41; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(400px, calc(100% - 32px)); background: var(--card); border-radius: 20px; padding: 18px 18px 16px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.sheet-handle { display: none; width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: -6px auto 12px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 16px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--soft); border-radius: 10px; padding: 3px; margin-bottom: 14px; }
+.seg button { border: 0; background: transparent; height: 34px; border-radius: 8px; font-weight: 600; font-size: 14px; color: var(--sub); }
+.seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+.sh-big { text-align: center; font-size: 40px; font-weight: 800; letter-spacing: -.02em; margin: 2px 0 2px; }
+.sh-sub { text-align: center; font-size: 13px; color: var(--sub); margin-bottom: 12px; min-height: 18px; }
+.sh-step { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+.sh-step button, .sh-chips button { height: 42px; border: 0; border-radius: 10px; background: var(--soft); font-weight: 600; font-size: 14px; }
+.sh-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.sh-chips button.on { background: var(--accent); color: #fff; }
+.sh-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 16px; }
+.sh-actions .btn { height: 48px; font-size: 15px; }
+@media (max-width: 520px) {
+  .sheet { left: 0; right: 0; top: auto; bottom: 0; transform: none; width: auto; border-radius: 20px 20px 0 0; padding-bottom: calc(16px + env(safe-area-inset-bottom)); animation: up .22s ease; }
+  .sheet-handle { display: block; }
+}
+@keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @media (max-width: 520px) { .mp { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; } .sticky-in { gap: 10px; padding: 9px 14px; } .sticky-v { font-size: 15.5px; } .sticky-m { display: none; } }
 .today-btn { border: 0; background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; font-size: 13px; padding: 6px 12px; border-radius: 999px; }
 @media (prefers-color-scheme: dark) { .today-btn { color: var(--accent); } }
@@ -308,11 +334,11 @@ details.card[open] > summary::after { content: '－'; }
   </section>
 
   <section class="card">
-    <div class="card-title"><span>일별 근무 기록</span><span style="font-weight:500;color:var(--faint)">예: 830 → 8:30</span></div>
-    <div class="list-head"><span>날짜</span><span>근무시간 · 휴가</span><span><span class="pc-only">당일 초과/부족</span><span class="mo-only">당일 · 이달 조정</span></span><span>이달 남은 조정</span></div>
+    <div class="card-title"><span>일별 근무 기록</span><span style="font-weight:500;color:var(--faint)" id="inputHint">예: 830 → 8:30 · ⏱ 입력판</span></div>
+    <div class="list-head"><span>날짜</span><span>근무시간 · 휴가</span><span><span class="pc-only">8시간 대비 초과/부족</span><span class="mo-only">8시간 대비 · 이달 조정</span></span><span>이달 남은 조정</span></div>
     <div id="dayList"></div>
     <div class="list-foot"><span>합계</span><span id="fActual">-</span><span id="fDiff">-</span><span></span></div>
-    <div class="legend">당일 초과/부족: 그날 근무시간 - 8시간<br>이달 남은 조정: 그날까지의 기록 기준, 남은 근무일을 매일 8시간씩 일한다고 할 때 이달 필수 근무시간까지 더 해야 하는 시간(더 근무 필요) 또는 덜 해도 되는 시간(덜 근무 가능)의 합계</div>
+    <div class="legend">8시간 대비 초과/부족: 그날 근무시간이 하루 8시간보다 많은지 적은지 (이번 달 필수 근무시간 기준 아님)<br>이달 남은 조정: 그날까지의 기록 기준, 남은 근무일을 매일 8시간씩 일한다고 할 때 이달 필수 근무시간까지 더 해야 하는 시간(더 근무 필요) 또는 덜 해도 되는 시간(덜 근무 가능)의 합계</div>
   </section>
 
   <details class="card" id="settingsCard">
@@ -341,7 +367,7 @@ details.card[open] > summary::after { content: '－'; }
         <div class="s" style="font-size:12px;color:var(--faint);margin-top:4px;" id="holSource"></div>
       </div>
       <ul class="help">
-        <li>근무시간은 숫자만 입력해도 됩니다. 9 → 9:00, 830 → 8:30, 1015 → 10:15</li>
+        <li>PC에서는 숫자만 입력해도 됩니다. 9 → 9:00, 830 → 8:30, 1015 → 10:15. ⏱ 버튼이나 휴대폰에서 시간 칸을 누르면 입력판이 열립니다</li>
         <li>연차·반차·반반차는 각각 8·4·2시간으로 인정됩니다. 반차일은 실제 근무한 시간만 입력</li>
         <li>회사 지정 휴무일이나 새로 발표된 임시공휴일은 해당 날짜를 '휴무'로 바꾸면 근무일과 필수 시간에서 빠집니다</li>
         <li>주말·공휴일에 근무했다면 해당 날짜에 시간을 입력하면 누적에 더해집니다</li>
@@ -356,9 +382,30 @@ details.card[open] > summary::after { content: '－'; }
     </div>
   </details>
 
-  <div class="ver">v2.2.1 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
+  <div class="ver">v2.3.0 · 2026-11-02 · 데이터는 이 브라우저에만 저장됩니다</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
+<div class="sheet-bg" id="sheetBg" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle" hidden>
+  <div class="sheet-handle"></div>
+  <div class="sheet-head"><b id="shTitle">-</b><button class="icon-btn" id="shClose" aria-label="닫기">×</button></div>
+  <div class="seg"><button data-tab="dur" class="on">근무시간</button><button data-tab="clock">출퇴근 시각</button></div>
+  <div id="shDur">
+    <div class="sh-big" id="shVal">8:00</div>
+    <div class="sh-sub" id="shSub"></div>
+    <div class="sh-step"><button data-d="-30">-30분</button><button data-d="-10">-10분</button><button data-d="10">+10분</button><button data-d="30">+30분</button></div>
+    <div class="sh-chips" id="shChips"></div>
+  </div>
+  <div id="shClock" hidden>
+    <div class="today-grid">
+      <div class="field"><label for="shStart">출근</label><input type="time" id="shStart"></div>
+      <div class="field"><label for="shEnd">퇴근</label><input type="time" id="shEnd"></div>
+    </div>
+    <div class="sh-big" id="shClockVal" style="margin-top:14px">-</div>
+    <div class="sh-sub" id="shClockSub"></div>
+  </div>
+  <div class="sh-actions"><button class="btn ghost" id="shClear">지우기</button><button class="btn primary" id="shSave">저장</button></div>
+</div>
 <div class="sticky" id="sticky" aria-hidden="true">
   <div class="sticky-in">
     <div class="sticky-m" id="stMonth">-</div>
@@ -379,6 +426,8 @@ const KEY_V2 = (y, m) => `${PREFIX}:v2:${y}-${pad(m)}`;
 const KEY_V1 = (y, m) => `${PREFIX}:month:${y}-${pad(m)}`;
 const KEY_SETTINGS = `${PREFIX}:v2:settings`;
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+const COARSE = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+if (COARSE) document.documentElement.classList.add('coarse');
 const LEAVE = {
   '': { label: '근무', credit: 0 },
   quarter: { label: '반반차', credit: 120 },
@@ -742,7 +791,10 @@ function renderList() {
         tag.textContent = '휴무 처리';
         main.append(tag, sel);
       } else {
-        main.append(input, sel);
+        const pb = document.createElement('button');
+        pb.className = 'pick-btn'; pb.dataset.day = x.d; pb.type = 'button';
+        pb.setAttribute('aria-label', `${view.m}월 ${x.d}일 입력판 열기`); pb.textContent = '⏱';
+        main.append(input, sel, pb);
       }
       row._sel = sel;
     } else {
@@ -755,6 +807,7 @@ function renderList() {
       main.append(tag, input);
     }
     row._input = input;
+    if (COARSE) { input.readOnly = true; input.inputMode = 'none'; }
 
     const res = document.createElement('div'); res.className = 'd-res';
     const diff = document.createElement('div'); diff.className = 'd-diff';
@@ -1046,7 +1099,14 @@ function bind() {
     const next = inputs.slice(i + 1).find((n) => !n.classList.contains('small'));
     if (next) next.focus();
   });
+  list.addEventListener('click', (ev) => {
+    const pb = ev.target.closest('.pick-btn');
+    if (pb) { openSheet(+pb.dataset.day); return; }
+    const el = ev.target;
+    if (COARSE && el.classList.contains('t-input') && !el.disabled) openSheet(+el.dataset.day);
+  });
   list.addEventListener('focusin', (ev) => {
+    if (COARSE) return;
     const el = ev.target;
     if (el.classList.contains('t-input')) setTimeout(() => el.select(), 0);
   });
@@ -1087,6 +1147,7 @@ function bind() {
     if (yy >= 1900 && yy <= 2999) { popYear = yy; drawPop(); }
   });
 
+  if (COARSE) $('inputHint').textContent = '날짜의 시간 칸을 눌러 입력';
   // 소개
   const introSeen = storage.get(`${PREFIX}:v2:introClosed`);
   $('intro').hidden = !!introSeen;
@@ -1201,7 +1262,89 @@ document.addEventListener('visibilitychange', () => {
   if (t.d !== lastDay) { lastDay = t.d; setView(view.y, view.m); }
 });
 
+/* ---------- 근무시간 입력판 ---------- */
+const sheet = { day: null, val: 480, tab: 'dur' };
+function clampW(v) { return Math.min(1440, Math.max(0, v)); }
+function sheetDraw() {
+  const x = compute().days[sheet.day - 1];
+  $('shVal').textContent = fmtClock(sheet.val);
+  const credit = LEAVE[x.e.leave] ? LEAVE[x.e.leave].credit : 0;
+  const isWork = x.type === 'work';
+  const diff = isWork ? sheet.val + credit - BASE : sheet.val;
+  $('shSub').textContent = isWork
+    ? (diff === 0 ? '8시간 기준 ±0' : `8시간 기준 ${fmtShort(Math.abs(diff), false)} ${diff > 0 ? '초과' : '부족'}`) + (credit ? ` · ${LEAVE[x.e.leave].label} ${credit / 60}시간 포함` : '')
+    : '휴일 근무 · 전부 초과로 인정';
+  [...$('shChips').children].forEach((b) => b.classList.toggle('on', +b.dataset.v === sheet.val));
+  const st = parseClock($('shStart').value), en = parseClock($('shEnd').value);
+  if (st !== null && en !== null) {
+    let span = en - st; if (span < 0) span += 1440;
+    const lunch = Math.max(0, parseInt(settings.lunch, 10) || 0);
+    const useLunch = span - lunch > 270 ? lunch : 0;
+    sheet.clockVal = Math.max(0, span - useLunch);
+    $('shClockVal').textContent = fmtClock(sheet.clockVal);
+    $('shClockSub').textContent = `${fmtTimeOfDay(st)} ~ ${fmtTimeOfDay(en)}${useLunch ? ` · 점심 ${fmtHM(useLunch)} 제외` : ''}`;
+  } else {
+    sheet.clockVal = null;
+    $('shClockVal').textContent = '-';
+    $('shClockSub').textContent = '출근·퇴근 시각을 고르면 근무시간이 계산됩니다';
+  }
+}
+function setSheetTab(tab) {
+  sheet.tab = tab;
+  document.querySelectorAll('#sheet .seg button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
+  $('shDur').hidden = tab !== 'dur';
+  $('shClock').hidden = tab !== 'clock';
+}
+function openSheet(d) {
+  const e = entry(d);
+  sheet.day = d;
+  const half = e.leave === 'half' ? 240 : e.leave === 'quarter' ? 360 : 480;
+  sheet.val = e.w !== null ? e.w : half;
+  $('shTitle').textContent = `${view.m}/${d} (${DOW[dowOf(view.y, view.m, d)]}) 근무시간`;
+  const chips = e.leave === 'half' ? [180, 210, 240, 270, 300, 330, 360, 390] : e.leave === 'quarter' ? [300, 330, 360, 390, 420, 450, 480, 510] : [420, 450, 480, 510, 540, 570, 600, 660];
+  $('shChips').innerHTML = chips.map((v) => `<button data-v="${v}">${fmtClock(v)}</button>`).join('');
+  $('shStart').value = settings.lastClockStart || '';
+  $('shEnd').value = '';
+  setSheetTab('dur');
+  sheetDraw();
+  $('sheetBg').hidden = false; $('sheet').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet() {
+  $('sheetBg').hidden = true; $('sheet').hidden = true;
+  document.body.style.overflow = '';
+}
+function applySheet(w) {
+  const d = sheet.day;
+  setEntry(d, { w });
+  const row = rows.get(d);
+  if (row && row._input) row._input.value = w !== null ? fmtClock(w) : '';
+  closeSheet();
+  refresh();
+  toast(w !== null ? `${view.m}/${d} ${fmtClock(w)} 저장` : `${view.m}/${d} 기록 삭제`);
+}
+function bindSheet() {
+  $('sheetBg').addEventListener('click', closeSheet);
+  $('shClose').addEventListener('click', closeSheet);
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('sheet').hidden) closeSheet(); });
+  document.querySelectorAll('#sheet .seg button').forEach((b) => b.addEventListener('click', () => setSheetTab(b.dataset.tab)));
+  document.querySelectorAll('#sheet .sh-step button').forEach((b) => b.addEventListener('click', () => { sheet.val = clampW(sheet.val + +b.dataset.d); sheetDraw(); }));
+  $('shChips').addEventListener('click', (ev) => { const b = ev.target.closest('button[data-v]'); if (b) { sheet.val = +b.dataset.v; sheetDraw(); } });
+  ['shStart', 'shEnd'].forEach((id) => $(id).addEventListener('input', () => {
+    if (id === 'shStart' && $('shStart').value) { settings.lastClockStart = $('shStart').value; saveSettings(); }
+    sheetDraw();
+  }));
+  $('shSave').addEventListener('click', () => {
+    if (sheet.tab === 'clock') {
+      if (sheet.clockVal === null) { toast('출근·퇴근 시각을 모두 골라주세요'); return; }
+      applySheet(sheet.clockVal);
+    } else applySheet(sheet.val);
+  });
+  $('shClear').addEventListener('click', () => applySheet(null));
+}
+
 bind();
+bindSheet();
 setView(view.y, view.m);
 loadRemoteHolidays();
 
