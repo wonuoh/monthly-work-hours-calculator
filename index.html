@@ -1595,7 +1595,7 @@ $('logo').addEventListener('click', () => {
       ['🍜', `컵라면 <b>${Math.floor(w / 4).toLocaleString()}개</b> 익히기`],
       ['🌍', `지구 자전 <b>${(w / 1436).toFixed(2)}바퀴</b> 동안 근무`]
     ];
-    $('eggSub').textContent = '기록된 근무시간 기준 · 오늘도 수고 많으셨습니다';
+    $('eggSub').textContent = '기록된 근무시간 기준';
     $('eggList').innerHTML = items.map(([e, t]) => `<li><span class="em">${e}</span><span>${t}</span></li>`).join('');
   }
   $('eggBg').hidden = false;
