@@ -135,6 +135,14 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 /* 시각 선택 */
 .tp { width: 100%; height: 44px; border: 1px solid var(--line); background: var(--soft); border-radius: 10px; padding: 0 12px; font-size: 16px; font-weight: 600; text-align: left; display: flex; align-items: center; justify-content: space-between; }
 .tp::after { content: '🕘'; font-size: 14px; opacity: .55; }
+.tp:not(.empty)::after { content: none; }
+.tp-wrap { position: relative; display: block; }
+.x-btn { border: 0; background: var(--line); color: var(--sub); width: 24px; height: 24px; border-radius: 50%; font-size: 14px; line-height: 1; display: grid; place-items: center; padding: 0; flex: none; }
+.x-btn:hover { background: var(--neg); color: #fff; }
+.x-btn[hidden] { display: none; }
+.in-wrap { position: relative; display: inline-flex; }
+.row-x { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; font-size: 13px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(0,0,0,.12); z-index: 1; }
+.tp-wrap .x-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
 .tp.empty { color: var(--faint); font-weight: 500; }
 .tp:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
 .tp-bg { position: fixed; inset: 0; z-index: 59; }
@@ -863,7 +871,12 @@ function renderList() {
         const pb = document.createElement('button');
         pb.className = 'pick-btn'; pb.dataset.day = x.d; pb.type = 'button';
         pb.setAttribute('aria-label', `${view.m}월 ${x.d}일 입력판 열기`); pb.textContent = '⏱';
-        main.append(input, sel, pb);
+        const xb = document.createElement('button');
+        xb.type = 'button'; xb.className = 'x-btn row-x'; xb.dataset.day = x.d; xb.textContent = '×';
+        xb.setAttribute('aria-label', `${view.m}월 ${x.d}일 근무시간 지우기`);
+        row._x = xb;
+        const iw = document.createElement('span'); iw.className = 'in-wrap'; iw.append(input, xb);
+        main.append(iw, sel, pb);
       }
       row._sel = sel;
     } else {
@@ -873,7 +886,12 @@ function renderList() {
       tag.title = x.hol || '';
       input.classList.add('small');
       input.placeholder = '근무 시';
-      main.append(tag, input);
+      const xb = document.createElement('button');
+      xb.type = 'button'; xb.className = 'x-btn row-x'; xb.dataset.day = x.d; xb.textContent = '×';
+      xb.setAttribute('aria-label', `${view.m}월 ${x.d}일 근무시간 지우기`);
+      row._x = xb;
+      const iw = document.createElement('span'); iw.className = 'in-wrap'; iw.append(input, xb);
+      main.append(tag, iw);
     }
     row._input = input;
     if (COARSE) { input.readOnly = true; input.inputMode = 'none'; }
@@ -907,6 +925,7 @@ function refresh() {
       inp.classList.toggle('missing', x.assumed);
       row._sel.classList.toggle('on', !!x.e.leave);
     }
+    if (row._x) row._x.hidden = x.e.w === null;
     if (x.diff !== null) {
       row._diff.textContent = x.diff === 0 ? '±0' : x.diff > 0 ? `${fmtShort(x.diff, false)} 초과` : `${fmtShort(-x.diff, false)} 부족`;
       row._diff.className = 'd-diff ' + (x.diff > 0 ? 'pos' : x.diff < 0 ? 'neg' : 'zero') + (x.assumed ? ' dim' : '');
@@ -1188,6 +1207,15 @@ function bind() {
     if (next) next.focus();
   });
   list.addEventListener('click', (ev) => {
+    const xb = ev.target.closest('.row-x');
+    if (xb) {
+      const d = +xb.dataset.day;
+      setEntry(d, { w: null });
+      const row = rows.get(d); if (row && row._input) row._input.value = '';
+      refresh();
+      toast(`${view.m}/${d} 근무시간을 지웠습니다`);
+      return;
+    }
     const pb = ev.target.closest('.pick-btn');
     if (pb) { openSheet(+pb.dataset.day); return; }
     const el = ev.target;
@@ -1475,7 +1503,17 @@ function initTP(el) {
     el.classList.toggle('empty', m === null);
   };
   Object.defineProperty(el, 'value', { get() { return v; }, set(x) { v = x || ''; draw(); }, configurable: true });
-  draw();
+  const wrap = document.createElement('span'); wrap.className = 'tp-wrap';
+  el.parentNode.insertBefore(wrap, el); wrap.appendChild(el);
+  const x = document.createElement('button');
+  x.type = 'button'; x.className = 'x-btn'; x.textContent = '×';
+  x.setAttribute('aria-label', `${el.dataset.label || '시각'} 지우기`);
+  wrap.appendChild(x);
+  x.addEventListener('click', (ev) => { ev.stopPropagation(); el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  const draw0 = draw;
+  const drawAll = () => { draw0(); x.hidden = parseClock(v) === null; };
+  Object.defineProperty(el, 'value', { get() { return v; }, set(val) { v = val || ''; drawAll(); }, configurable: true });
+  drawAll();
   el.addEventListener('click', (ev) => { ev.stopPropagation(); openTP(el); });
 }
 function tpDraw() {
